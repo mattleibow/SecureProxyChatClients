@@ -36,6 +36,15 @@ else if (errorMessage is not null)
     private string? errorMessage;
     private bool isLoading;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
     private async Task CallPing()
     {
         isLoading = true;

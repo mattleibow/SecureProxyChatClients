@@ -1,0 +1,215 @@
+@page "/chat"
+@using SecureProxyChatClients.Client.Web.Services
+@using SecureProxyChatClients.Shared.Contracts
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject HttpClient Http
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Chat</PageTitle>
+
+<h3>Secure Chat</h3>
+
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="alert alert-warning" data-testid="chat-unauthenticated">
+        You are not logged in. <a href="/login">Login first</a>.
+    </div>
+}
+else
+{
+    <div class="chat-container" data-testid="chat-container">
+        <div class="chat-messages border rounded p-3 mb-3" style="height: 400px; overflow-y: auto;" data-testid="chat-messages">
+            @foreach (var msg in messages)
+            {
+                <div class="mb-2 @(msg.Role == "user" ? "text-end" : "")">
+                    <span class="badge @(msg.Role == "user" ? "bg-primary" : "bg-secondary")">@msg.Role</span>
+                    <span class="ms-2" data-testid="chat-message-content">@msg.Content</span>
+                </div>
+            }
+            @if (isStreaming && !string.IsNullOrEmpty(streamingContent))
+            {
+                <div class="mb-2">
+                    <span class="badge bg-secondary">assistant</span>
+                    <span class="ms-2" data-testid="chat-streaming-content">@streamingContent</span>
+                    <span class="spinner-border spinner-border-sm ms-1" role="status"></span>
+                </div>
+            }
+        </div>
+
+        <div class="input-group" data-testid="chat-input-group">
+            <input type="text" class="form-control" placeholder="Type a message..."
+                   @bind="userInput" @bind:event="oninput"
+                   @onkeydown="HandleKeyDown"
+                   disabled="@isStreaming"
+                   data-testid="chat-input" />
+            <button class="btn btn-primary" @onclick="SendMessage"
+                    disabled="@(isStreaming || string.IsNullOrWhiteSpace(userInput))"
+                    data-testid="chat-send">
+                @(isStreaming ? "Streaming..." : "Send")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="SendMessageStreaming"
+                    disabled="@(isStreaming || string.IsNullOrWhiteSpace(userInput))"
+                    data-testid="chat-send-stream">
+                Stream
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-2" data-testid="chat-error">@errorMessage</div>
+        }
+    </div>
+}
+
+@code {
+    private List<ChatMessageDto> messages = [];
+    private string userInput = string.Empty;
+    private string? errorMessage;
+    private bool isStreaming;
+    private string streamingContent = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isStreaming && !string.IsNullOrWhiteSpace(userInput))
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput)) return;
+
+        var userMessage = new ChatMessageDto { Role = "user", Content = userInput };
+        messages.Add(userMessage);
+        var input = userInput;
+        userInput = string.Empty;
+        errorMessage = null;
+
+        try
+        {
+            var request = new ChatRequest
+            {
+                Messages = messages.ToList(),
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/chat", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var chatResponse = await response.Content.ReadFromJsonAsync<ChatResponse>();
+                if (chatResponse?.Messages is { Count: > 0 })
+                {
+                    foreach (var msg in chatResponse.Messages)
+                    {
+                        messages.Add(msg);
+                    }
+                }
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error {(int)response.StatusCode}: {errorBody}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task SendMessageStreaming()
+    {
+        if (string.IsNullOrWhiteSpace(userInput)) return;
+
+        var userMessage = new ChatMessageDto { Role = "user", Content = userInput };
+        messages.Add(userMessage);
+        userInput = string.Empty;
+        errorMessage = null;
+        isStreaming = true;
+        streamingContent = string.Empty;
+
+        try
+        {
+            var request = new ChatRequest
+            {
+                Messages = messages.ToList(),
+            };
+
+            var jsonContent = JsonContent.Create(request);
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/chat/stream")
+            {
+                Content = jsonContent,
+            };
+
+            using var response = await Http.SendAsync(httpRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error {(int)response.StatusCode}: {errorBody}";
+                return;
+            }
+
+            // In WASM, streaming reads are not supported, so read the full SSE response
+            var sseText = await response.Content.ReadAsStringAsync();
+            ParseSseResponse(sseText);
+
+            if (!string.IsNullOrEmpty(streamingContent))
+            {
+                messages.Add(new ChatMessageDto { Role = "assistant", Content = streamingContent.Trim() });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isStreaming = false;
+            streamingContent = string.Empty;
+        }
+    }
+
+    private void ParseSseResponse(string sseText)
+    {
+        string? eventType = null;
+        foreach (var line in sseText.Split('\n'))
+        {
+            if (line.StartsWith("event: "))
+            {
+                eventType = line[7..].Trim();
+            }
+            else if (line.StartsWith("data: ") && eventType is not null)
+            {
+                var data = line[6..].Trim();
+
+                if (eventType == "text-delta")
+                {
+                    var json = JsonSerializer.Deserialize<JsonElement>(data);
+                    if (json.TryGetProperty("text", out var textElement))
+                    {
+                        streamingContent += textElement.GetString();
+                    }
+                }
+                else if (eventType == "done")
+                {
+                    break;
+                }
+
+                eventType = null;
+            }
+        }
+    }
+}

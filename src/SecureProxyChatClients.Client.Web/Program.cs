@@ -7,7 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddSingleton<AuthState>();
+builder.Services.AddScoped<AuthState>();
 builder.Services.AddTransient<AuthenticatedHttpMessageHandler>();
 
 var serverUrl = builder.Configuration.GetValue<string>("ServerUrl")

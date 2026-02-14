@@ -48,7 +48,7 @@
             {
                 var json = await response.Content.ReadFromJsonAsync<JsonElement>();
                 var token = json.GetProperty("accessToken").GetString()!;
-                AuthState.SetToken(token);
+                await AuthState.SetTokenAsync(token);
                 Nav.NavigateTo("/ping");
             }
             else

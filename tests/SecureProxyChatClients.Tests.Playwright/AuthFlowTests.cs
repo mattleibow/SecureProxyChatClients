@@ -110,19 +110,38 @@ public class AuthFlowTests(AspirePlaywrightFixture fixture)
             await page.Locator("[data-testid='login-password']").FillAsync("Test123!");
             await page.Locator("[data-testid='login-submit']").ClickAsync();
 
-            // Wait for redirect to /ping
+            // Wait for redirect to /ping, then do a full page load to ensure sessionStorage is used
             await page.WaitForURLAsync($"**/ping", new() { Timeout = 15_000 });
+            await page.GotoAsync($"{fixture.ClientUrl}/ping");
+            await page.WaitForSelectorAsync("[data-testid='ping-button']", new() { Timeout = 30_000 });
 
-            // Click the ping button
-            await page.Locator("[data-testid='ping-button']").ClickAsync();
+            // Wait for button to become enabled (auth loaded from sessionStorage)
+            await page.WaitForFunctionAsync(
+                "() => !document.querySelector('[data-testid=\"ping-button\"]')?.disabled",
+                null,
+                new() { Timeout = 10_000 });
 
-            // Wait for result
+            var pingButton = page.Locator("[data-testid='ping-button']");
+            await pingButton.ClickAsync();
+
+            // Wait for either result or error to appear
+            var resultOrError = page.Locator("[data-testid='ping-result'], [data-testid='ping-error']");
+            await resultOrError.First.WaitForAsync(new() { Timeout = 15_000 });
+
+            // Check which one appeared
             var resultDiv = page.Locator("[data-testid='ping-result']");
-            await resultDiv.WaitForAsync(new() { Timeout = 15_000 });
-
-            var resultText = await resultDiv.TextContentAsync();
-            Assert.Contains("test@test.com", resultText!);
-            Assert.Contains("True", resultText!);
+            if (await resultDiv.CountAsync() > 0 && await resultDiv.IsVisibleAsync())
+            {
+                var resultText = await resultDiv.TextContentAsync();
+                Assert.Contains("test@test.com", resultText!);
+                Assert.Contains("True", resultText!);
+            }
+            else
+            {
+                var errorDiv = page.Locator("[data-testid='ping-error']");
+                var errorText = await errorDiv.TextContentAsync();
+                Assert.Fail($"Ping failed with error: {errorText}");
+            }
         }
         finally
         {
