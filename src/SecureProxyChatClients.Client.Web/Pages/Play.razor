@@ -506,9 +506,16 @@ else
 
         try
         {
+            // Build message list: include current action even if hidden from story display
+            var messagesToSend = storyMessages.TakeLast(20).ToList();
+            if (!showUserMessage)
+            {
+                messagesToSend.Add(new ChatMessageDto { Role = "user", Content = action });
+            }
+
             var request = new ChatRequest
             {
-                Messages = storyMessages.TakeLast(20).ToList(),
+                Messages = messagesToSend,
                 SessionId = sessionId,
             };
 
