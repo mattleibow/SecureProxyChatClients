@@ -35,6 +35,17 @@ public static class PlayEndpoints
         - Track the player's location with MovePlayer when they travel
         - Award XP for clever solutions and completing objectives
         
+        COMBAT RULES:
+        - Use creatures from the AVAILABLE CREATURES list appropriate to the player's level
+        - Describe the creature vividly using its emoji and description
+        - Each combat round: player acts, then creature acts
+        - Use RollCheck for player attacks (stat: relevant weapon stat, DC: creature's AttackDc)
+        - On hit, call ModifyHealth on the creature (track in narrative). On miss, the creature attacks.
+        - Creature attacks: RollCheck for player defense (stat: dexterity, DC: 10 + creature level)
+        - On failed defense, call ModifyHealth on the player (negative, amount: creature's Damage)
+        - Award XP and Gold on creature defeat using AwardExperience and ModifyGold
+        - Reference creature weaknesses — give hints to observant players
+        
         TONE: Dark fantasy with moments of humor. Think Discworld meets Dark Souls.
         """;
 
@@ -51,6 +62,7 @@ public static class PlayEndpoints
         group.MapPost("/stream", HandlePlayStreamAsync);
         group.MapGet("/state", GetPlayerStateAsync);
         group.MapPost("/new-game", StartNewGameAsync);
+        group.MapGet("/twist", GetTwistOfFateAsync);
 
         return group;
     }
@@ -65,6 +77,12 @@ public static class PlayEndpoints
 
         var state = await gameStateStore.GetOrCreatePlayerStateAsync(userId, ct);
         return Results.Ok(state);
+    }
+
+    private static IResult GetTwistOfFateAsync()
+    {
+        var twist = TwistOfFate.GetRandomTwist();
+        return Results.Ok(new { twist.Title, twist.Prompt, twist.Emoji, twist.Category });
     }
 
     private static async Task<IResult> StartNewGameAsync(
@@ -144,7 +162,8 @@ public static class PlayEndpoints
             : "";
 
         // Build game context for the DM
-        string gameContext = BuildGameContext(playerState) + memoryContext;
+        string gameContext = BuildGameContext(playerState) + memoryContext
+            + Bestiary.FormatForDmPrompt(playerState.Level);
         var gameToolRegistry = new GameToolRegistry();
 
         // Session management
@@ -294,7 +313,8 @@ public static class PlayEndpoints
             ? "\n\nPAST EVENTS THE PLAYER REMEMBERS:\n" + string.Join("\n", recentMemories.Select(m => $"- [{m.MemoryType}] {m.Content}"))
             : "";
         
-        string gameContext = BuildGameContext(playerState) + memoryContext;
+        string gameContext = BuildGameContext(playerState) + memoryContext
+            + Bestiary.FormatForDmPrompt(playerState.Level);
 
         // Session management
         string sessionId;

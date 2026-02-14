@@ -168,6 +168,8 @@ else if (playerState is not null)
                         disabled="@isStreaming">🔍 Search</button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Rest and recover some health"))"
                         disabled="@isStreaming">💤 Rest</button>
+                <button class="btn btn-outline-warning btn-sm" @onclick="TriggerTwistOfFate"
+                        disabled="@isStreaming" title="Something unexpected happens...">🌀 Twist of Fate</button>
             </div>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -341,6 +343,30 @@ else
     private async Task QuickAction(string action)
     {
         await SendActionInternal(action);
+    }
+
+    private async Task TriggerTwistOfFate()
+    {
+        try
+        {
+            var twist = await Http.GetFromJsonAsync<TwistData>("/api/play/twist");
+            if (twist is not null)
+            {
+                await SendActionInternal($"[TWIST OF FATE: {twist.Emoji} {twist.Title}] {twist.Prompt}");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"The fates are silent: {ex.Message}";
+        }
+    }
+
+    private sealed class TwistData
+    {
+        public string Title { get; set; } = "";
+        public string Prompt { get; set; } = "";
+        public string Emoji { get; set; } = "";
+        public string Category { get; set; } = "";
     }
 
     private async Task SendActionInternal(string action)
