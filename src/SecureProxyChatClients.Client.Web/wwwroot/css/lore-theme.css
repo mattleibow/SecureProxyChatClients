@@ -561,6 +561,21 @@ a:hover { color: var(--lore-gold-bright) !important; }
     box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
 }
 
+.btn-outline-info {
+    color: var(--lore-cyan) !important;
+    border-color: var(--lore-cyan) !important;
+    font-family: var(--font-display) !important;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.btn-outline-info:hover:not(:disabled) {
+    background: rgba(6, 182, 212, 0.15) !important;
+    color: #22d3ee !important;
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.3);
+}
+
 /* ── Inventory sidebar styling ───────────────────────── */
 
 .inventory-sidebar .card {

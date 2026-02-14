@@ -170,6 +170,8 @@ else if (playerState is not null)
                         disabled="@isStreaming">💤 Rest</button>
                 <button class="btn btn-outline-warning btn-sm" @onclick="TriggerTwistOfFate"
                         disabled="@isStreaming" title="Something unexpected happens...">🌀 Twist of Fate</button>
+                <button class="btn btn-outline-info btn-sm" @onclick="ConsultOracle"
+                        disabled="@isStreaming" title="Ask the Oracle for a cryptic hint...">👁️ Oracle</button>
             </div>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -367,6 +369,34 @@ else
         public string Prompt { get; set; } = "";
         public string Emoji { get; set; } = "";
         public string Category { get; set; } = "";
+    }
+
+    private async Task ConsultOracle()
+    {
+        try
+        {
+            var lastUserMessage = storyMessages.LastOrDefault(m => m.Role == "user")?.Content ?? "What should I do next?";
+            var response = await Http.PostAsJsonAsync("/api/play/oracle", new { question = lastUserMessage });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<OracleResponse>();
+                if (result?.Oracle is not null)
+                {
+                    storyMessages.Add(new ChatMessageDto { Role = "assistant", Content = $"👁️ *{result.Oracle}*" });
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"The Oracle's vision is clouded: {ex.Message}";
+        }
+    }
+
+    private sealed class OracleResponse
+    {
+        public string? Oracle { get; set; }
     }
 
     private async Task SendActionInternal(string action)

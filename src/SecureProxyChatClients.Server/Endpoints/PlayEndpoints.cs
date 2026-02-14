@@ -18,6 +18,20 @@ public static class PlayEndpoints
     private const int MaxToolCallRounds = 8;
     private const int MaxToolResultLength = 32_768;
 
+    private const string OracleSystemPrompt = """
+        You are the Oracle of LoreEngine — an ancient, all-seeing entity who speaks in cryptic riddles.
+        
+        RULES:
+        - Never give direct answers. Always speak in riddles, metaphors, and prophecy.
+        - Reference the player's current game state when forming hints.
+        - Keep responses to 2-3 sentences maximum.
+        - Use archaic language ("Thou", "seeketh", "the path doth wind...")
+        - Occasionally reference creatures from the bestiary as omens.
+        - If the player seems stuck, give a slightly more direct hint wrapped in mysticism.
+        - Always begin with "The Oracle speaks:" followed by the prophecy.
+        - End with a cryptic farewell like "The mists close..." or "The vision fades..."
+        """;
+
     private const string DmSystemPrompt = """
         You are the Dungeon Master (DM) of LoreEngine, an interactive fiction game.
         
@@ -64,6 +78,7 @@ public static class PlayEndpoints
         group.MapPost("/new-game", StartNewGameAsync);
         group.MapGet("/twist", GetTwistOfFateAsync);
         group.MapGet("/achievements", GetAchievementsAsync);
+        group.MapPost("/oracle", ConsultOracleAsync);
 
         return group;
     }
@@ -424,6 +439,55 @@ public static class PlayEndpoints
         await httpContext.Response.Body.FlushAsync(CancellationToken.None);
     }
 
+    private static async Task<IResult> ConsultOracleAsync(
+        HttpContext httpContext,
+        [FromBody] OracleRequest request,
+        IChatClient chatClient,
+        IGameStateStore gameStateStore,
+        IStoryMemoryService memoryService,
+        CancellationToken ct)
+    {
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.Question) || request.Question.Length > 500)
+            return Results.BadRequest(new { error = "Ask a clear question (max 500 chars)." });
+
+        var state = await gameStateStore.GetOrCreatePlayerStateAsync(userId, ct);
+        var memories = await memoryService.GetRecentMemoriesAsync(userId, 3, ct);
+
+        string context = $"""
+            {OracleSystemPrompt}
+            
+            PLAYER STATE: {state.Name} the {state.CharacterClass}, Level {state.Level}, at {state.CurrentLocation}.
+            HP: {state.Health}/{state.MaxHealth}, Gold: {state.Gold}
+            Recent events: {string.Join("; ", memories.Select(m => m.Content))}
+            
+            The player asks: {request.Question}
+            """;
+
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, context),
+            new(ChatRole.User, request.Question),
+        };
+
+        var response = await chatClient.GetResponseAsync(messages, cancellationToken: ct);
+        string oracleText = response.Messages.LastOrDefault(m => m.Text is { Length: > 0 })?.Text ?? "The Oracle is silent...";
+
+        // Store the oracle consultation as a memory
+        await memoryService.StoreMemoryAsync(userId, "oracle", $"Consulted the Oracle about: {request.Question}", "lore", ct: ct);
+
+        // Award the "twist-of-fate" achievement for consulting oracle (if not already earned)
+        if (!state.UnlockedAchievements.Contains("twist-of-fate"))
+        {
+            state.UnlockedAchievements.Add("twist-of-fate");
+            await gameStateStore.SavePlayerStateAsync(userId, state, ct);
+        }
+
+        return Results.Ok(new { oracle = oracleText });
+    }
+
     private static string BuildGameContext(PlayerState state) => $"""
         CURRENT GAME STATE:
         Player: {state.Name} the {state.CharacterClass} (Level {state.Level})
@@ -474,4 +538,9 @@ public sealed record NewGameRequest
 {
     public string? CharacterName { get; init; }
     public string? CharacterClass { get; init; }
+}
+
+public sealed record OracleRequest
+{
+    public string Question { get; init; } = string.Empty;
 }
