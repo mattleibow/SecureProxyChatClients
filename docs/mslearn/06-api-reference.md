@@ -129,8 +129,7 @@ Sends a game action to the AI with game state context.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `messages` | array | Yes | Player action messages |
-| `sessionId` | string | Yes | Active game session |
-| `gameState` | object | No | Current player state |
+| `sessionId` | string | No | Active game session |
 
 **Success response (200):**
 
@@ -138,7 +137,8 @@ Sends a game action to the AI with game state context.
 |-------|------|-------------|
 | `messages` | array | AI narrative response |
 | `sessionId` | string | Session identifier |
-| `gameState` | object | Updated player state |
+| `playerState` | object | Updated player state (name, class, level, HP, gold, XP, location, inventory, stats) |
+| `gameEvents` | array | Game events (dice rolls, achievements, combat) |
 
 ### POST /api/play/stream
 
@@ -164,7 +164,9 @@ Returns the player's unlocked achievements.
 
 Submits a question to the Oracle NPC and returns a narrative answer.
 
-**Request body:** `{ "question": "...", "sessionId": "..." }`
+**Request body:** `{ "question": "..." }`
+
+**Success response:** `{ "oracle": "The Oracle speaks: ..." }`
 
 ### GET /api/play/map
 
@@ -203,10 +205,9 @@ Retrieves recent memories for the authenticated user.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `sessionId` | string | — | Filter by session |
-| `limit` | integer | 10 | Maximum results |
+| `limit` | integer | 5 | Maximum results |
 
-**Success response (200):** `{ "results": [{ "id", "content", "memoryType", "createdAt" }] }`
+**Success response (200):** `[{ "id", "content", "memoryType", "tags", "createdAt" }]`
 
 ## Health Endpoint
 

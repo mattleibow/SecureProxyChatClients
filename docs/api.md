@@ -247,14 +247,7 @@ POST /api/play
   "messages": [
     { "role": "user", "content": "I draw my sword and charge the goblin" }
   ],
-  "sessionId": "play-session-id",
-  "gameState": {
-    "health": 100,
-    "gold": 50,
-    "xp": 0,
-    "level": 1,
-    "inventory": []
-  }
+  "sessionId": "play-session-id"
 }
 ```
 
@@ -265,7 +258,17 @@ POST /api/play
     { "role": "assistant", "content": "You charge forward, blade gleaming..." }
   ],
   "sessionId": "play-session-id",
-  "gameState": { "health": 85, "gold": 55, "xp": 25, "level": 1 }
+  "playerState": {
+    "name": "Kael", "characterClass": "warrior", "level": 1,
+    "health": 85, "maxHealth": 100, "gold": 55, "experience": 25,
+    "currentLocation": "Dark Forest",
+    "inventory": [{ "name": "Iron Sword", "type": "weapon", "emoji": "⚔️" }],
+    "stats": { "strength": 14, "dexterity": 10, "wisdom": 10, "charisma": 10 }
+  },
+  "gameEvents": [
+    { "type": "DiceCheck", "data": { "roll": 17, "modifier": 2, "total": 19, "difficulty": 12, "success": true } },
+    { "type": "Achievement", "data": { "id": "first-blood", "title": "First Blood" } }
+  ]
 }
 ```
 
@@ -337,16 +340,14 @@ POST /api/play/oracle
 **Request Body:**
 ```json
 {
-  "question": "What lies beyond the dark forest?",
-  "sessionId": "play-session-id"
+  "question": "What lies beyond the dark forest?"
 }
 ```
 
 **Response (200 OK):**
 ```json
 {
-  "answer": "The Oracle speaks: Beyond the dark forest lies...",
-  "sessionId": "play-session-id"
+  "oracle": "The Oracle speaks: Beyond the dark forest lies..."
 }
 ```
 
@@ -383,15 +384,13 @@ POST /api/memory/store
 {
   "content": "The ancient dragon Veltharis guards the Crystalspire",
   "memoryType": "lore",
-  "sessionId": "play-session-id",
-  "metadata": {}
+  "sessionId": "play-session-id"
 }
 ```
 
 **Response (200 OK):**
 ```json
 {
-  "id": "memory-uuid",
   "stored": true
 }
 ```
@@ -399,21 +398,20 @@ POST /api/memory/store
 ### Get Recent Memories
 
 ```
-GET /api/memory/recent?sessionId=play-session-id&limit=10
+GET /api/memory/recent?limit=5
 ```
 
 **Response (200 OK):**
 ```json
-{
-  "results": [
-    {
-      "id": "memory-uuid",
-      "content": "The ancient dragon Veltharis guards the Crystalspire",
-      "memoryType": "lore",
-      "createdAt": "2026-02-14T10:30:00Z"
-    }
-  ]
-}
+[
+  {
+    "id": 1,
+    "content": "The ancient dragon Veltharis guards the Crystalspire",
+    "memoryType": "lore",
+    "tags": "dragon,lore",
+    "createdAt": "2026-02-14T10:30:00Z"
+  }
+]
 ```
 
 > **Note:** Memory type and session ID values must be alphanumeric (letters, digits, hyphens, underscores) to prevent injection attacks.
