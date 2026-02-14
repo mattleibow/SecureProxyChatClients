@@ -83,9 +83,24 @@ Blazor WASM (Client)                  ASP.NET Core (Server / BFF)
    - **Password**: `Test123!`
 
 4. **Try it out**:
+   - **Play** → Create a character and explore an AI-driven RPG world
    - **Create Story** → Full guided creation flow (genre → rules → pitch → scenes)
    - **Writer's Room** → Direct multi-agent discussion
    - **Chat** → Direct AI chat with streaming + tool calling
+
+5. **Configure AI provider** (optional):
+   Create a `secrets.json` file in the repository root:
+   ```json
+   {
+     "AI": {
+       "Provider": "AzureOpenAI",
+       "Endpoint": "https://YOUR-RESOURCE.openai.azure.com/",
+       "ApiKey": "YOUR-KEY",
+       "DeploymentName": "gpt-4o"
+     }
+   }
+   ```
+   Without this, the app uses a built-in Fake provider for local testing.
 
 ---
 
@@ -114,7 +129,7 @@ SecureProxyChatClients/
 │   │   └── Services/           ← ProxyChatClient, AuthState, StoryState
 │   └── SecureProxyChatClients.Shared/        ← Shared DTOs & contracts
 ├── tests/
-│   ├── Tests.Unit/             ← Fast unit tests (253+ tests)
+│   ├── Tests.Unit/             ← Fast unit tests (256+ tests)
 │   ├── Tests.Integration/      ← Aspire integration tests
 │   ├── Tests.Playwright/       ← Browser E2E tests
 │   └── Tests.Smoke/            ← Real AI provider tests
