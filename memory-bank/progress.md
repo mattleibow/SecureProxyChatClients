@@ -1,10 +1,10 @@
 # Progress
 
-> **Last updated**: 2026-02-16
+> **Last updated**: 2026-02-17
 
-## ✅ ALL 11 PHASES COMPLETE + FEATURE EXPANSION
+## ✅ ALL 11 PHASES COMPLETE + FEATURE EXPANSION + VISUAL POLISH
 
-**Total test count: 205 unit + 3 integration + 25 Playwright = 233 tests**
+**Total test count: 230 unit + 4 integration + 25 Playwright = 259 tests**
 
 ### Planning & Design ✅
 - [x] Read and analyzed proposal (`docs/proposal.md`)
@@ -80,3 +80,23 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 ### Aspire Version Fix ✅
 - [x] Fixed Aspire.Hosting.PostgreSQL version mismatch (13.1.1 → 9.4.2)
 - [x] Integration tests: 3/4 passing (1 flaky unauthenticated test)
+
+### Bug Fixes & Visual Polish ✅
+- [x] Fixed Razor interpolation bug in Play.razor: `x@item.Quantity` → `x@(item.Quantity)`
+- [x] Improved Play page layout: horizontal class cards with consistent spacing
+- [x] Redesigned stats bar: compact display with pipe separators (HP | STR | DEX | WIS | CHA | LEVEL)
+- [x] Fixed sidebar overflow: set max-height with overflow-y-auto on inventory section
+- [x] Added story auto-scroll using JS interop: `IJSRuntime.InvokeAsync("setScrollBottom")` with `scrollTop = scrollHeight`
+- [x] Reduced article padding on play page using `:has()` CSS selector for optimal spacing
+- [x] All 230 unit tests passing ✅
+- [x] All 4 integration tests passing ✅
+
+### Real AI Testing ✅
+- [x] Successfully tested with real Azure OpenAI gpt-4o model
+- [x] Game features verified working end-to-end:
+  - [x] Look command: environment description generation
+  - [x] Map command: ASCII map rendering
+  - [x] Oracle command: mysterious prophecies
+  - [x] Movement: directional exploration
+  - [x] ASCII art rendering: quality dungeon/environment descriptions
+- [x] Streaming responses working correctly with real API
