@@ -104,15 +104,41 @@ public class ContentFilterTests
     }
 
     [Fact]
-    public void FilterResponse_HandlesNullContent()
+    public void FilterResponse_HandlesSingleQuotedEventHandlers()
     {
         var response = new ChatResponse
         {
-            Messages = [new ChatMessageDto { Role = "assistant", Content = null }]
+            Messages = [new ChatMessageDto { Role = "assistant", Content = "<img onerror='alert(1)'>" }]
         };
 
         var result = _filter.FilterResponse(response);
 
-        Assert.Null(result.Messages[0].Content);
+        Assert.DoesNotContain("onerror", result.Messages[0].Content);
+    }
+
+    [Fact]
+    public void FilterResponse_HandlesUnquotedEventHandlers()
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = "<img onerror=alert(1)>" }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.DoesNotContain("onerror", result.Messages[0].Content);
+    }
+
+    [Fact]
+    public void FilterResponse_HandlesCaseInsensitiveScripts()
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = "Test <SCRIPT>evil()</SCRIPT> end" }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.Equal("Test [content removed] end", result.Messages[0].Content);
     }
 }

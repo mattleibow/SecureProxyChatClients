@@ -90,9 +90,9 @@ else
     builder.Services.AddSingleton<IStoryMemoryService, InMemoryStoryMemoryService>();
 }
 
-// Rate limiting — token bucket for burst handling + per-user sliding window
-int permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 30);
-int windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
+// Rate limiting — token bucket for burst handling
+int permitLimit = Math.Max(1, builder.Configuration.GetValue("RateLimiting:PermitLimit", 30));
+int windowSeconds = Math.Max(1, builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60));
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -167,22 +167,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-
-// Audit logging for security events
-app.Use(async (context, next) =>
-{
-    await next();
-    if (context.Response.StatusCode is 401 or 403)
-    {
-        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("SecurityAudit");
-        logger.LogWarning("Access denied: {StatusCode} {Method} {Path} from {User}",
-            context.Response.StatusCode,
-            context.Request.Method,
-            context.Request.Path,
-            context.User.Identity?.Name ?? "anonymous");
-    }
-});
 
 app.UseCors();
 app.UseAuthentication();

@@ -12,8 +12,11 @@ public sealed partial class ContentFilter(ILogger<ContentFilter> logger)
     [GeneratedRegex(@"<iframe[^>]*>.*?</iframe>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex IframeTagRegex();
 
-    [GeneratedRegex(@"on\w+\s*=\s*""[^""]*""", RegexOptions.IgnoreCase)]
-    private static partial Regex EventHandlerRegex();
+    [GeneratedRegex(@"on\w+\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase)]
+    private static partial Regex EventHandlerQuotedRegex();
+
+    [GeneratedRegex(@"on\w+\s*=\s*\S+", RegexOptions.IgnoreCase)]
+    private static partial Regex EventHandlerUnquotedRegex();
 
     [GeneratedRegex(@"javascript\s*:", RegexOptions.IgnoreCase)]
     private static partial Regex JavascriptProtocolRegex();
@@ -27,7 +30,8 @@ public sealed partial class ContentFilter(ILogger<ContentFilter> logger)
             string sanitized = m.Content;
             sanitized = ScriptTagRegex().Replace(sanitized, "[content removed]");
             sanitized = IframeTagRegex().Replace(sanitized, "[content removed]");
-            sanitized = EventHandlerRegex().Replace(sanitized, "");
+            sanitized = EventHandlerQuotedRegex().Replace(sanitized, "");
+            sanitized = EventHandlerUnquotedRegex().Replace(sanitized, "");
             sanitized = JavascriptProtocolRegex().Replace(sanitized, "");
 
             if (sanitized != m.Content)

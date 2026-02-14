@@ -254,7 +254,10 @@ public static class PlayEndpoints
 
         // Session management
         string sessionId;
-        if (sanitizedRequest!.SessionId is { Length: > 0 and <= 128 } sid)
+        if (sanitizedRequest!.SessionId is { Length: > 128 })
+            return Results.BadRequest(new { error = "Invalid session ID." });
+
+        if (sanitizedRequest.SessionId is { Length: > 0 } sid)
         {
             string? owner = await conversationStore.GetSessionOwnerAsync(sid, cancellationToken);
             if (owner is null || owner != userId)
@@ -433,7 +436,14 @@ public static class PlayEndpoints
 
         // Session management
         string sessionId;
-        if (sanitizedRequest!.SessionId is { Length: > 0 and <= 128 } sid)
+        if (sanitizedRequest!.SessionId is { Length: > 128 })
+        {
+            httpContext.Response.StatusCode = 400;
+            await httpContext.Response.WriteAsJsonAsync(new { error = "Invalid session ID." }, cancellationToken);
+            return;
+        }
+
+        if (sanitizedRequest.SessionId is { Length: > 0 } sid)
         {
             string? owner = await conversationStore.GetSessionOwnerAsync(sid, cancellationToken);
             if (owner is null || owner != userId)
