@@ -11,7 +11,7 @@ builder.Services.AddSingleton<AuthState>();
 builder.Services.AddTransient<AuthenticatedHttpMessageHandler>();
 
 var serverUrl = builder.Configuration.GetValue<string>("ServerUrl")
-    ?? "https://localhost:5001";
+    ?? "http://localhost:5167";
 
 builder.Services.AddHttpClient("ServerApi", client =>
     {
