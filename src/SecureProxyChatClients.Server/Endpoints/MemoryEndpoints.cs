@@ -15,8 +15,12 @@ public static class MemoryEndpoints
                 AuthenticationSchemes = $"{IdentityConstants.BearerScheme},{IdentityConstants.ApplicationScheme}"
             });
 
-        group.MapGet("/recent", GetRecentMemoriesAsync);
-        group.MapPost("/store", StoreMemoryAsync);
+        group.MapGet("/recent", GetRecentMemoriesAsync)
+            .WithName("GetRecentMemories")
+            .WithSummary("Gets recent story memories for the current user");
+        group.MapPost("/store", StoreMemoryAsync)
+            .WithName("StoreMemory")
+            .WithSummary("Stores a new story memory");
 
         return group;
     }

@@ -72,15 +72,47 @@ public static class PlayEndpoints
             })
             .RequireRateLimiting("chat");
 
-        group.MapPost("/", HandlePlayAsync);
-        group.MapPost("/stream", HandlePlayStreamAsync);
-        group.MapGet("/state", GetPlayerStateAsync);
-        group.MapPost("/new-game", StartNewGameAsync);
-        group.MapGet("/twist", GetTwistOfFateAsync);
-        group.MapGet("/achievements", GetAchievementsAsync);
-        group.MapPost("/oracle", ConsultOracleAsync);
-        group.MapGet("/map", GetWorldMapAsync);
-        group.MapGet("/encounter", GetRandomEncounterAsync);
+        group.MapPost("/", HandlePlayAsync)
+            .WithName("Play")
+            .WithSummary("Processes a game turn with tool execution and state tracking")
+            .Produces<PlayResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/stream", HandlePlayStreamAsync)
+            .WithName("PlayStream")
+            .WithSummary("Streams a game turn via SSE with real-time tool events")
+            .Produces(StatusCodes.Status200OK, contentType: "text/event-stream")
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
+
+        group.MapGet("/state", GetPlayerStateAsync)
+            .WithName("GetPlayerState")
+            .WithSummary("Gets the current player state");
+
+        group.MapPost("/new-game", StartNewGameAsync)
+            .WithName("StartNewGame")
+            .WithSummary("Creates a new character and starts a fresh game");
+
+        group.MapGet("/twist", GetTwistOfFateAsync)
+            .WithName("GetTwistOfFate")
+            .WithSummary("Gets a random twist of fate event");
+
+        group.MapGet("/achievements", GetAchievementsAsync)
+            .WithName("GetAchievements")
+            .WithSummary("Gets all achievements with unlock status");
+
+        group.MapPost("/oracle", ConsultOracleAsync)
+            .WithName("ConsultOracle")
+            .WithSummary("Consults the Oracle for cryptic hints");
+
+        group.MapGet("/map", GetWorldMapAsync)
+            .WithName("GetWorldMap")
+            .WithSummary("Gets the ASCII world map with exploration progress");
+
+        group.MapGet("/encounter", GetRandomEncounterAsync)
+            .WithName("GetRandomEncounter")
+            .WithSummary("Generates a random combat encounter");
 
         return group;
     }
@@ -184,6 +216,7 @@ public static class PlayEndpoints
         IGameStateStore gameStateStore,
         IConversationStore conversationStore,
         IStoryMemoryService memoryService,
+        GameToolRegistry gameToolRegistry,
         ILogger<IConversationStore> logger,
         CancellationToken cancellationToken)
     {
@@ -207,7 +240,6 @@ public static class PlayEndpoints
         string gameContext = BuildGameContext(playerState) + memoryContext
             + Bestiary.FormatForDmPrompt(playerState.Level)
             + $"\n\nAVAILABLE DESTINATIONS FROM {playerState.CurrentLocation}: {destinations}";
-        var gameToolRegistry = new GameToolRegistry();
 
         // Session management
         string sessionId;
@@ -323,7 +355,7 @@ public static class PlayEndpoints
                 {
                     logger.LogError(ex, "Game tool {Tool} failed", fc.Name);
                     chatMessages.Add(new ChatMessage(ChatRole.Tool,
-                        [new FunctionResultContent(fc.CallId, $"Tool error: {ex.Message}")]));
+                        [new FunctionResultContent(fc.CallId, "Tool execution failed.")]));
                 }
             }
         }
@@ -346,6 +378,7 @@ public static class PlayEndpoints
         IGameStateStore gameStateStore,
         IConversationStore conversationStore,
         IStoryMemoryService memoryService,
+        GameToolRegistry gameToolRegistry,
         ILogger<IConversationStore> logger,
         CancellationToken cancellationToken)
     {
@@ -403,7 +436,11 @@ public static class PlayEndpoints
         httpContext.Response.Headers.CacheControl = "no-cache";
         httpContext.Response.Headers.Connection = "keep-alive";
 
-        var gameToolRegistry = new GameToolRegistry();
+        // Enforce AI call timeout to prevent hanging
+        using var aiTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        aiTimeout.CancelAfter(TimeSpan.FromMinutes(5));
+        var ct = aiTimeout.Token;
+
         ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
         List<GameEvent> gameEvents = [];
 
@@ -413,7 +450,7 @@ public static class PlayEndpoints
         {
             for (int round = 0; round < MaxToolCallRounds; round++)
             {
-                var aiResponse = await chatClient.GetResponseAsync(chatMessages, chatOptions, cancellationToken);
+                var aiResponse = await chatClient.GetResponseAsync(chatMessages, chatOptions, ct);
 
                 var functionCalls = aiResponse.Messages
                     .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
@@ -444,8 +481,8 @@ public static class PlayEndpoints
                         {
                             string chunk = responseText[i..Math.Min(i + chunkSize, responseText.Length)];
                             string data = JsonSerializer.Serialize(new { text = chunk });
-                            await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
-                            await httpContext.Response.Body.FlushAsync(cancellationToken);
+                            await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", ct);
+                            await httpContext.Response.Body.FlushAsync(ct);
                         }
                     }
 
@@ -479,8 +516,8 @@ public static class PlayEndpoints
 
                         // Send tool result as SSE event in real-time
                         string toolEventData = JsonSerializer.Serialize(gameEvent);
-                        await httpContext.Response.WriteAsync($"event: tool-result\ndata: {toolEventData}\n\n", cancellationToken);
-                        await httpContext.Response.Body.FlushAsync(cancellationToken);
+                        await httpContext.Response.WriteAsync($"event: tool-result\ndata: {toolEventData}\n\n", ct);
+                        await httpContext.Response.Body.FlushAsync(ct);
 
                         string resultJson = JsonSerializer.Serialize(result);
                         if (resultJson.Length > MaxToolResultLength)
@@ -491,7 +528,7 @@ public static class PlayEndpoints
 
                         logger.LogInformation("Game tool {Tool} executed for player {PlayerId}", fc.Name, userId);
 
-                        await StoreGameEventAsMemoryAsync(memoryService, userId, sessionId, fc.Name, result, cancellationToken);
+                        await StoreGameEventAsMemoryAsync(memoryService, userId, sessionId, fc.Name, result, ct);
                     }
                     catch (Exception ex)
                     {
@@ -512,20 +549,34 @@ public static class PlayEndpoints
         if (fullText.Length > 0)
         {
             await conversationStore.AppendMessagesAsync(sessionId,
-                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], cancellationToken);
+                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], CancellationToken.None);
             
             // Store the narrative as a story memory (truncated for brevity)
             string summary = fullText.Length > 200 ? fullText.ToString()[..200] + "..." : fullText.ToString();
             await memoryService.StoreMemoryAsync(userId, sessionId, summary, "event", ct: CancellationToken.None);
         }
 
-        // Send state + done
-        string stateData = JsonSerializer.Serialize(playerState);
-        await httpContext.Response.WriteAsync($"event: state\ndata: {stateData}\n\n", CancellationToken.None);
+        // Send state + done (safe — client may have disconnected)
+        await WriteSseEventSafeAsync(httpContext, "state", playerState);
+        await WriteSseEventSafeAsync(httpContext, "done", new { sessionId });
+    }
 
-        string doneData = JsonSerializer.Serialize(new { sessionId });
-        await httpContext.Response.WriteAsync($"event: done\ndata: {doneData}\n\n", CancellationToken.None);
-        await httpContext.Response.Body.FlushAsync(CancellationToken.None);
+    /// <summary>
+    /// Writes an SSE event, silently ignoring errors if the client has disconnected.
+    /// </summary>
+    private static async Task WriteSseEventSafeAsync(HttpContext httpContext, string eventName, object payload)
+    {
+        try
+        {
+            if (httpContext.RequestAborted.IsCancellationRequested) return;
+            string data = JsonSerializer.Serialize(payload);
+            await httpContext.Response.WriteAsync($"event: {eventName}\ndata: {data}\n\n");
+            await httpContext.Response.Body.FlushAsync();
+        }
+        catch (Exception)
+        {
+            // Client disconnected — safe to ignore
+        }
     }
 
     private static async Task<IResult> GetWorldMapAsync(

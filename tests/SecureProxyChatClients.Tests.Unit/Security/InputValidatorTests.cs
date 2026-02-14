@@ -227,4 +227,32 @@ public class InputValidatorTests
         Assert.False(isValid);
         Assert.Contains("No valid messages", error);
     }
+
+    // --- S6: HTML/Script injection detection ---
+
+    [Theory]
+    [InlineData("<script>alert('xss')</script>")]
+    [InlineData("<SCRIPT src='evil.js'></SCRIPT>")]
+    [InlineData("<iframe src='evil.com'></iframe>")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("<img onerror=alert(1)>")]
+    [InlineData("<img onload=fetch('evil.com')>")]
+    public void Detects_HtmlInjectionAttempts(string content)
+    {
+        var request = MakeRequest(UserMsg(content));
+        (bool isValid, string? error, _) = CreateValidator().ValidateAndSanitize(request);
+
+        Assert.False(isValid);
+        Assert.Contains("disallowed content", error);
+    }
+
+    [Fact]
+    public void Allows_NormalHtmlLikeContent()
+    {
+        // Content that mentions HTML tags in text but isn't injection
+        var request = MakeRequest(UserMsg("The warrior attacks with a strength > 10 using a shield < armor"));
+        (bool isValid, _, _) = CreateValidator().ValidateAndSanitize(request);
+
+        Assert.True(isValid);
+    }
 }

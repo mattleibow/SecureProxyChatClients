@@ -25,6 +25,13 @@ public sealed class InputValidator(IOptions<SecurityOptions> options, ILogger<In
             if (length > _options.MaxMessageLength)
                 return (false, $"Message exceeds maximum length of {_options.MaxMessageLength} characters.", null);
 
+            // S6: Reject messages containing HTML/script injection attempts
+            if (message.Content is not null && ContainsHtmlInjection(message.Content))
+            {
+                logger.LogWarning("Blocked HTML/script injection attempt");
+                return (false, "Message contains disallowed content.", null);
+            }
+
             totalLength += length;
         }
 
@@ -97,5 +104,15 @@ public sealed class InputValidator(IOptions<SecurityOptions> options, ILogger<In
 
         ChatRequest sanitizedRequest = request with { Messages = sanitizedMessages };
         return (true, null, sanitizedRequest);
+    }
+
+    private static bool ContainsHtmlInjection(string content)
+    {
+        var lower = content.AsSpan();
+        return lower.Contains("<script", StringComparison.OrdinalIgnoreCase)
+            || lower.Contains("<iframe", StringComparison.OrdinalIgnoreCase)
+            || lower.Contains("javascript:", StringComparison.OrdinalIgnoreCase)
+            || lower.Contains("onerror=", StringComparison.OrdinalIgnoreCase)
+            || lower.Contains("onload=", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -25,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.HasKey(m => m.Id);
             e.HasIndex(m => m.SessionId);
+            e.HasIndex(m => new { m.SessionId, m.SequenceNumber });
         });
     }
 }

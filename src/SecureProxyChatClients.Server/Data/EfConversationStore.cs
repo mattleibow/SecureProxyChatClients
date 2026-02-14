@@ -64,6 +64,7 @@ public sealed class EfConversationStore(AppDbContext db) : IConversationStore
     public async Task<IReadOnlyList<ChatMessageDto>> GetHistoryAsync(string sessionId, CancellationToken ct = default)
     {
         return await db.ConversationMessages
+            .AsNoTracking()
             .Where(m => m.SessionId == sessionId)
             .OrderBy(m => m.SequenceNumber)
             .Select(m => new ChatMessageDto
@@ -78,6 +79,7 @@ public sealed class EfConversationStore(AppDbContext db) : IConversationStore
     public async Task<IReadOnlyList<SessionSummary>> GetUserSessionsAsync(string userId, CancellationToken ct = default)
     {
         return await db.ConversationSessions
+            .AsNoTracking()
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.UpdatedAt)
             .Select(s => new SessionSummary
@@ -93,6 +95,7 @@ public sealed class EfConversationStore(AppDbContext db) : IConversationStore
     public async Task<string?> GetSessionOwnerAsync(string sessionId, CancellationToken ct = default)
     {
         return await db.ConversationSessions
+            .AsNoTracking()
             .Where(s => s.Id == sessionId)
             .Select(s => s.UserId)
             .FirstOrDefaultAsync(ct);

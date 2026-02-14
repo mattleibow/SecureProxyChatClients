@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+// Database
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db"));
 
@@ -22,8 +23,23 @@ builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<IdentityUser>(options =>
     {
         options.SignIn.RequireConfirmedEmail = false;
+        options.Password.RequireDigit = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     })
     .AddEntityFrameworkStores<AppDbContext>();
+
+// Configure Identity cookies for security
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.ExpireTimeSpan = TimeSpan.FromHours(2);
+    options.SlidingExpiration = true;
+});
 
 builder.Services.AddScoped<SeedDataService>();
 
@@ -33,10 +49,13 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.WithOrigins(clientOrigin)
               .WithHeaders("Content-Type", "Authorization", "Accept")
-              .WithMethods("GET", "POST", "OPTIONS"));
+              .WithMethods("GET", "POST")
+              .SetPreflightMaxAge(TimeSpan.FromMinutes(10)));
 });
 
 builder.Services.AddOpenApi();
+
+builder.Services.AddProblemDetails();
 
 // AI services
 builder.Services.AddAiServices(builder.Configuration);
@@ -53,6 +72,7 @@ builder.Services.AddScoped<IConversationStore, EfConversationStore>();
 
 // Game engine
 builder.Services.AddSingleton<IGameStateStore, InMemoryGameStateStore>();
+builder.Services.AddSingleton<GameToolRegistry>();
 
 // Vector store — use PostgreSQL with pgvector when available, fallback to in-memory
 string? vectorConnectionString = builder.Configuration.GetConnectionString("VectorStore");
@@ -67,20 +87,28 @@ else
     builder.Services.AddSingleton<IStoryMemoryService, InMemoryStoryMemoryService>();
 }
 
-// Rate limiting
+// Rate limiting — token bucket for burst handling + per-user sliding window
 int permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 30);
 int windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("chat", limiterOptions =>
+    options.AddTokenBucketLimiter("chat", limiterOptions =>
     {
-        limiterOptions.PermitLimit = permitLimit;
-        limiterOptions.Window = TimeSpan.FromSeconds(windowSeconds);
+        limiterOptions.TokenLimit = permitLimit;
+        limiterOptions.ReplenishmentPeriod = TimeSpan.FromSeconds(windowSeconds / permitLimit);
+        limiterOptions.TokensPerPeriod = 1;
         limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 0;
+        limiterOptions.QueueLimit = 2;
+        limiterOptions.AutoReplenishment = true;
     });
+});
+
+// Request body size limit
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 1_048_576; // 1 MB
 });
 
 var app = builder.Build();
@@ -100,7 +128,26 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Security headers middleware
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    headers["Content-Security-Policy"] =
+        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'";
+    await next();
+});
+
 app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -119,8 +166,15 @@ app.MapGet("/api/ping", (HttpContext context) =>
         user = context.User.Identity?.Name,
         authenticated = true
     });
-}).RequireAuthorization();
+}).RequireAuthorization()
+  .WithName("Ping")
+  .WithSummary("Health check for authenticated users")
+  .Produces(StatusCodes.Status200OK)
+  .Produces(StatusCodes.Status401Unauthorized);
 
 app.MapDefaultEndpoints();
 
 app.Run();
+
+// Test host hook — allows WebApplicationFactory<Program> to reference this type
+public partial class Program { }

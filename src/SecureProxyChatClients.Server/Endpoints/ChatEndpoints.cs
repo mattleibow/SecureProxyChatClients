@@ -26,8 +26,20 @@ public static class ChatEndpoints
             })
             .RequireRateLimiting("chat");
 
-        group.MapPost("/", HandleChatAsync);
-        group.MapPost("/stream", HandleChatStreamAsync);
+        group.MapPost("/", HandleChatAsync)
+            .WithName("Chat")
+            .WithSummary("Processes a chat turn with optional server-side tool execution")
+            .Produces<Shared.Contracts.ChatResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status429TooManyRequests);
+
+        group.MapPost("/stream", HandleChatStreamAsync)
+            .WithName("ChatStream")
+            .WithSummary("Streams a chat response via Server-Sent Events")
+            .Produces(StatusCodes.Status200OK, contentType: "text/event-stream")
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         return group;
     }
@@ -161,7 +173,7 @@ public static class ChatEndpoints
                         logger.LogError(ex, "Server tool {ToolName} failed", functionCall.Name);
                         chatMessages.Add(new ChatMessage(ChatRole.Tool,
                         [
-                            new FunctionResultContent(functionCall.CallId, $"Tool error: {ex.Message}"),
+                            new FunctionResultContent(functionCall.CallId, "Tool execution failed."),
                         ]));
                     }
                 }
@@ -261,19 +273,24 @@ public static class ChatEndpoints
         httpContext.Response.Headers.CacheControl = "no-cache";
         httpContext.Response.Headers.Connection = "keep-alive";
 
+        // Enforce AI call timeout to prevent hanging
+        using var aiTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        aiTimeout.CancelAfter(TimeSpan.FromMinutes(5));
+        var ct = aiTimeout.Token;
+
         // Stream from IChatClient and collect full response for persistence
         var fullText = new System.Text.StringBuilder();
         try
         {
             await foreach (ChatResponseUpdate update in chatClient.GetStreamingResponseAsync(
-                chatMessages, cancellationToken: cancellationToken))
+                chatMessages, cancellationToken: ct))
             {
                 if (update.Text is { Length: > 0 } text)
                 {
                     fullText.Append(text);
                     string data = JsonSerializer.Serialize(new { text });
-                    await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
-                    await httpContext.Response.Body.FlushAsync(cancellationToken);
+                    await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", ct);
+                    await httpContext.Response.Body.FlushAsync(ct);
                 }
             }
         }
@@ -289,23 +306,37 @@ public static class ChatEndpoints
                 httpContext.Response.StatusCode = 500;
                 return;
             }
-            // If already streaming, send error event
-            string errorData = JsonSerializer.Serialize(new { error = "Stream interrupted." });
-            await httpContext.Response.WriteAsync($"event: error\ndata: {errorData}\n\n", CancellationToken.None);
-            await httpContext.Response.Body.FlushAsync(CancellationToken.None);
+            // Already streaming — send error event then close
+            await WriteSseEventSafeAsync(httpContext, "error", new { error = "Stream interrupted." });
         }
 
         // Persist assistant response
         if (fullText.Length > 0)
         {
             await conversationStore.AppendMessagesAsync(sessionId,
-                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], cancellationToken);
+                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], CancellationToken.None);
         }
 
         // Send done event with sessionId
-        string doneData = JsonSerializer.Serialize(new { sessionId });
-        await httpContext.Response.WriteAsync($"event: done\ndata: {doneData}\n\n", CancellationToken.None);
-        await httpContext.Response.Body.FlushAsync(CancellationToken.None);
+        await WriteSseEventSafeAsync(httpContext, "done", new { sessionId });
+    }
+
+    /// <summary>
+    /// Writes an SSE event, silently ignoring errors if the client has disconnected.
+    /// </summary>
+    private static async Task WriteSseEventSafeAsync(HttpContext httpContext, string eventName, object payload)
+    {
+        try
+        {
+            if (httpContext.RequestAborted.IsCancellationRequested) return;
+            string data = JsonSerializer.Serialize(payload);
+            await httpContext.Response.WriteAsync($"event: {eventName}\ndata: {data}\n\n");
+            await httpContext.Response.Body.FlushAsync();
+        }
+        catch (Exception)
+        {
+            // Client disconnected — safe to ignore
+        }
     }
 
     private static List<ChatMessage> ConvertToChatMessages(IReadOnlyList<ChatMessageDto> dtos)

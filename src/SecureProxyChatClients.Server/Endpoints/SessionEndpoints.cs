@@ -16,9 +16,15 @@ public static class SessionEndpoints
                 AuthenticationSchemes = $"{IdentityConstants.BearerScheme},{IdentityConstants.ApplicationScheme}"
             });
 
-        group.MapPost("/", CreateSessionAsync);
-        group.MapGet("/", ListSessionsAsync);
-        group.MapGet("/{id}/history", GetSessionHistoryAsync);
+        group.MapPost("/", CreateSessionAsync)
+            .WithName("CreateSession")
+            .WithSummary("Creates a new conversation session");
+        group.MapGet("/", ListSessionsAsync)
+            .WithName("ListSessions")
+            .WithSummary("Lists all sessions for the current user");
+        group.MapGet("/{id}/history", GetSessionHistoryAsync)
+            .WithName("GetSessionHistory")
+            .WithSummary("Gets the message history for a session");
 
         return group;
     }
