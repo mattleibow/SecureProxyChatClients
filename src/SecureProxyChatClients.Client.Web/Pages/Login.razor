@@ -80,4 +80,16 @@
             isLoading = false;
         }
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            if (AuthState.IsAuthenticated)
+            {
+                Nav.NavigateTo("/play");
+            }
+        }
+    }
 }

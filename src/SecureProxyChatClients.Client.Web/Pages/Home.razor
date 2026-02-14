@@ -22,6 +22,18 @@
 
     <hr class="lore-separator" />
 
+    @if (!AuthState.IsAuthenticated)
+    {
+        <div class="auth-container mb-4" style="max-width: 100%; text-align: center;">
+            <h4 class="auth-title">🔑 Begin Your Journey</h4>
+            <p class="auth-subtitle">Create an account or sign in to start your adventure</p>
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="/register" class="btn btn-primary">📝 Register</a>
+                <a href="/login" class="btn btn-outline-primary">🔑 Login</a>
+            </div>
+        </div>
+    }
+
     <div class="row g-4 mt-2">
         <div class="col-md-6">
             <div class="card h-100" style="border-left: 3px solid var(--lore-gold);">
@@ -36,7 +48,14 @@
                         <li>NPCs with hidden secrets</li>
                         <li>ASCII art scene descriptions</li>
                     </ul>
-                    <a href="/play" class="btn btn-primary" data-testid="link-play">⚔️ Begin Adventure</a>
+                    @if (AuthState.IsAuthenticated)
+                    {
+                        <a href="/play" class="btn btn-primary" data-testid="link-play">⚔️ Begin Adventure</a>
+                    }
+                    else
+                    {
+                        <a href="/login" class="btn btn-primary" data-testid="link-play">🔑 Login to Play</a>
+                    }
                 </div>
             </div>
         </div>
@@ -53,7 +72,14 @@
                         <li>Genre & world rule customization</li>
                         <li>Scene-by-scene building</li>
                     </ul>
-                    <a href="/create-story" class="btn btn-outline-primary" data-testid="link-create-story">🎭 Create Story</a>
+                    @if (AuthState.IsAuthenticated)
+                    {
+                        <a href="/create-story" class="btn btn-outline-primary" data-testid="link-create-story">🎭 Create Story</a>
+                    }
+                    else
+                    {
+                        <a href="/login" class="btn btn-outline-primary" data-testid="link-create-story">🔑 Login to Create</a>
+                    }
                 </div>
             </div>
         </div>
@@ -64,7 +90,14 @@
                     <h4 style="font-family: var(--font-display); color: var(--agent-critic);">Writer's Room</h4>
                     <p>Pitch ideas directly to your AI writing team and watch them brainstorm, 
                        critique, and refine your concepts in real-time.</p>
-                    <a href="/writers-room" class="btn btn-outline-primary" data-testid="link-writers-room">📝 Open Room</a>
+                    @if (AuthState.IsAuthenticated)
+                    {
+                        <a href="/writers-room" class="btn btn-outline-primary" data-testid="link-writers-room">📝 Open Room</a>
+                    }
+                    else
+                    {
+                        <a href="/login" class="btn btn-outline-primary" data-testid="link-writers-room">🔑 Login Required</a>
+                    }
                 </div>
             </div>
         </div>
@@ -75,7 +108,14 @@
                     <h4 style="font-family: var(--font-display); color: var(--lore-cyan);">Secure Chat</h4>
                     <p>Direct chat with AI through the secure proxy. Full tool calling, 
                        streaming, and session persistence.</p>
-                    <a href="/chat" class="btn btn-outline-primary" data-testid="link-chat">💬 Open Chat</a>
+                    @if (AuthState.IsAuthenticated)
+                    {
+                        <a href="/chat" class="btn btn-outline-primary" data-testid="link-chat">💬 Open Chat</a>
+                    }
+                    else
+                    {
+                        <a href="/login" class="btn btn-outline-primary" data-testid="link-chat">🔑 Login Required</a>
+                    }
                 </div>
             </div>
         </div>

@@ -1,4 +1,8 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using SecureProxyChatClients.Client.Web.Services
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">⚔️ LoreEngine</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -14,52 +18,70 @@
                 🏰 Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="play">
-                ⚔️ Play
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="journal">
-                📜 Journal
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="bestiary">
-                📖 Bestiary
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="achievements">
-                🏆 Achievements
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="create-story">
-                🎭 Create Story
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="writers-room">
-                📝 Writers Room
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="chat">
-                💬 Chat
-            </NavLink>
-        </div>
-        <hr class="lore-separator mx-3 my-1" />
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login">
-                🔑 Login
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="ping">
-                📡 Ping
-            </NavLink>
-        </div>
+
+        @if (AuthState.IsAuthenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="play">
+                    ⚔️ Play
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="journal">
+                    📜 Journal
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="bestiary">
+                    📖 Bestiary
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="achievements">
+                    🏆 Achievements
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="create-story">
+                    🎭 Create Story
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="writers-room">
+                    📝 Writers Room
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="chat">
+                    💬 Chat
+                </NavLink>
+            </div>
+            <hr class="lore-separator mx-3 my-1" />
+            <div class="nav-item px-3">
+                <button class="nav-link btn btn-link text-start w-100" @onclick="LogoutAsync">
+                    🚪 Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="bestiary">
+                    📖 Bestiary
+                </NavLink>
+            </div>
+            <hr class="lore-separator mx-3 my-1" />
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="login">
+                    🔑 Login
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="register">
+                    📝 Register
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
 
@@ -71,5 +93,20 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthState.ClearAsync();
+        Nav.NavigateTo("/", forceLoad: true);
     }
 }

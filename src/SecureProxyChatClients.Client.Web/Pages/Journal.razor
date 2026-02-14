@@ -1,8 +1,23 @@
 @page "/journal"
 @using System.Net.Http.Json
+@using SecureProxyChatClients.Client.Web.Services
 @inject HttpClient Http
+@inject AuthState AuthState
 @inject NavigationManager Navigation
 
+<PageTitle>📜 Journal — LoreEngine</PageTitle>
+
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="auth-container">
+        <h3 class="auth-title">📜 Lore Journal</h3>
+        <p class="auth-subtitle">Sign in to view your adventure history</p>
+        <a href="/login" class="btn btn-primary w-100">🔑 Login</a>
+        <p class="text-center mt-3"><small>New adventurer? <a href="/register">Create an account</a></small></p>
+    </div>
+}
+else
+{
 <div class="lore-page">
     <div class="lore-card p-4 mb-4">
         <h2 class="lore-heading">📜 Lore Journal</h2>
@@ -47,13 +62,25 @@
         </div>
     }
 </div>
+}
 
 @code {
     private List<MemoryEntry> _memories = [];
     private bool _loading = true;
     private string? _error;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            if (AuthState.IsAuthenticated)
+                await LoadMemoriesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMemoriesAsync()
     {
         try
         {

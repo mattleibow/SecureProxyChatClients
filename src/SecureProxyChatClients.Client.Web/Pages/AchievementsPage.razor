@@ -1,10 +1,23 @@
 @page "/achievements"
 @using System.Net.Http.Json
+@using SecureProxyChatClients.Client.Web.Services
 @inject HttpClient Http
+@inject AuthState AuthState
 @inject NavigationManager Navigation
 
 <PageTitle>🏆 Achievements — LoreEngine</PageTitle>
 
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="auth-container">
+        <h3 class="auth-title">🏆 Achievements</h3>
+        <p class="auth-subtitle">Sign in to track your legendary deeds</p>
+        <a href="/login" class="btn btn-primary w-100">🔑 Login</a>
+        <p class="text-center mt-3"><small>New adventurer? <a href="/register">Create an account</a></small></p>
+    </div>
+}
+else
+{
 <div class="lore-page">
     <div class="lore-card p-4 mb-4">
         <h2 class="lore-heading">🏆 Achievements</h2>
@@ -68,13 +81,25 @@
         }
     }
 </div>
+}
 
 @code {
     private List<AchievementInfo> _achievements = [];
     private bool _loading = true;
     private string? _error;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            if (AuthState.IsAuthenticated)
+                await LoadAchievementsAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadAchievementsAsync()
     {
         try
         {
