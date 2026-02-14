@@ -11,7 +11,9 @@ public static class AiServiceExtensions
         // Register the server tool registry
         services.AddSingleton<ServerToolRegistry>();
 
-        string provider = configuration.GetValue<string>("AI:Provider") ?? "Fake";
+        // Default to AzureOpenAI when credentials are configured, otherwise Fake
+        string provider = configuration.GetValue<string>("AI:Provider")
+            ?? (string.IsNullOrEmpty(configuration["AI:Endpoint"]) ? "Fake" : "AzureOpenAI");
 
         switch (provider.ToLowerInvariant())
         {

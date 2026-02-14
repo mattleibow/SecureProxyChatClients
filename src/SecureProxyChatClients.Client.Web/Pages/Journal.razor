@@ -7,7 +7,13 @@
 
 <PageTitle>📜 Journal — LoreEngine</PageTitle>
 
-@if (!AuthState.IsAuthenticated)
+@if (!_initialized)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+    </div>
+}
+else if (!AuthState.IsAuthenticated)
 {
     <div class="auth-container">
         <h3 class="auth-title">📜 Lore Journal</h3>
@@ -67,6 +73,7 @@ else
 @code {
     private List<MemoryEntry> _memories = [];
     private bool _loading = true;
+    private bool _initialized;
     private string? _error;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -74,9 +81,10 @@ else
         if (firstRender)
         {
             await AuthState.InitializeAsync();
+            _initialized = true;
             if (AuthState.IsAuthenticated)
                 await LoadMemoriesAsync();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 

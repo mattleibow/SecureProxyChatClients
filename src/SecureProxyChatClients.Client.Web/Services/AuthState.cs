@@ -18,7 +18,7 @@ public class AuthState(IJSRuntime jsRuntime)
 
     // Static so all DI-scoped instances (including HttpClientFactory handler scope) share the token
     private static string? s_accessToken;
-    private static bool s_initialized;
+    private static Task? s_initTask;
 
     /// <summary>Raised when authentication state changes so UI components can re-render.</summary>
     public static event Action? OnChange;
@@ -26,16 +26,27 @@ public class AuthState(IJSRuntime jsRuntime)
     public string? AccessToken => s_accessToken;
     public bool IsAuthenticated => !string.IsNullOrEmpty(s_accessToken);
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        if (s_initialized) return;
-        s_initialized = true;
+        // Use a shared Task so all callers await the same initialization.
+        // This avoids race conditions where one component sets s_initialized
+        // before the async sessionStorage read completes, causing other components
+        // to see IsAuthenticated=false prematurely.
+        s_initTask ??= InitializeCoreAsync();
+        return s_initTask;
+    }
 
+    private async Task InitializeCoreAsync()
+    {
         if (!string.IsNullOrEmpty(s_accessToken)) return;
 
         try
         {
             s_accessToken = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", StorageKey);
+            if (!string.IsNullOrEmpty(s_accessToken))
+            {
+                OnChange?.Invoke();
+            }
         }
         catch
         {
@@ -46,7 +57,7 @@ public class AuthState(IJSRuntime jsRuntime)
     public async Task SetTokenAsync(string token)
     {
         s_accessToken = token;
-        s_initialized = true;
+        s_initTask = Task.CompletedTask;
         try
         {
             await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", StorageKey, token);
@@ -58,7 +69,7 @@ public class AuthState(IJSRuntime jsRuntime)
     public async Task ClearAsync()
     {
         s_accessToken = null;
-        s_initialized = false;
+        s_initTask = null;
         try
         {
             await jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", StorageKey);

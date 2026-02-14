@@ -22,7 +22,13 @@
 
     <hr class="lore-separator" />
 
-    @if (!AuthState.IsAuthenticated)
+    @if (!_initialized)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning"></div>
+        </div>
+    }
+    else if (!AuthState.IsAuthenticated)
     {
         <div class="auth-container mb-4" style="max-width: 100%; text-align: center;">
             <h4 class="auth-title">🔑 Begin Your Journey</h4>
@@ -48,7 +54,7 @@
                         <li>NPCs with hidden secrets</li>
                         <li>ASCII art scene descriptions</li>
                     </ul>
-                    @if (AuthState.IsAuthenticated)
+                    @if (_initialized && AuthState.IsAuthenticated)
                     {
                         <a href="/play" class="btn btn-primary" data-testid="link-play">⚔️ Begin Adventure</a>
                     }
@@ -72,7 +78,7 @@
                         <li>Genre & world rule customization</li>
                         <li>Scene-by-scene building</li>
                     </ul>
-                    @if (AuthState.IsAuthenticated)
+                    @if (_initialized && AuthState.IsAuthenticated)
                     {
                         <a href="/create-story" class="btn btn-outline-primary" data-testid="link-create-story">🎭 Create Story</a>
                     }
@@ -90,7 +96,7 @@
                     <h4 style="font-family: var(--font-display); color: var(--agent-critic);">Writer's Room</h4>
                     <p>Pitch ideas directly to your AI writing team and watch them brainstorm, 
                        critique, and refine your concepts in real-time.</p>
-                    @if (AuthState.IsAuthenticated)
+                    @if (_initialized && AuthState.IsAuthenticated)
                     {
                         <a href="/writers-room" class="btn btn-outline-primary" data-testid="link-writers-room">📝 Open Room</a>
                     }
@@ -108,7 +114,7 @@
                     <h4 style="font-family: var(--font-display); color: var(--lore-cyan);">Secure Chat</h4>
                     <p>Direct chat with AI through the secure proxy. Full tool calling, 
                        streaming, and session persistence.</p>
-                    @if (AuthState.IsAuthenticated)
+                    @if (_initialized && AuthState.IsAuthenticated)
                     {
                         <a href="/chat" class="btn btn-outline-primary" data-testid="link-chat">💬 Open Chat</a>
                     }
@@ -144,12 +150,15 @@
 </div>
 
 @code {
+    private bool _initialized;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await AuthState.InitializeAsync();
-            StateHasChanged();
+            _initialized = true;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

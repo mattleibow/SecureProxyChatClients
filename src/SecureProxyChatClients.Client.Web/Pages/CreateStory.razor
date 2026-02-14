@@ -12,7 +12,13 @@
 
 <h3>🎭 LoreEngine — Create Your Story</h3>
 
-@if (!AuthState.IsAuthenticated)
+@if (!_initialized)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+    </div>
+}
+else if (!AuthState.IsAuthenticated)
 {
     <div class="alert alert-warning" data-testid="create-story-unauthenticated">
         You are not logged in. <a href="/login">Login first</a>.
@@ -221,6 +227,7 @@ else
     private bool discussionStarted;
     private readonly List<AgentMessage> agentMessages = [];
     private CancellationTokenSource? cts;
+    private bool _initialized;
 
     private static readonly Dictionary<string, GenreInfo> genres = new()
     {
@@ -245,7 +252,8 @@ else
         if (firstRender)
         {
             await AuthState.InitializeAsync();
-            StateHasChanged();
+            _initialized = true;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

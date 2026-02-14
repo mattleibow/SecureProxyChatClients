@@ -7,7 +7,13 @@
 
 <PageTitle>🏆 Achievements — LoreEngine</PageTitle>
 
-@if (!AuthState.IsAuthenticated)
+@if (!_initialized)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+    </div>
+}
+else if (!AuthState.IsAuthenticated)
 {
     <div class="auth-container">
         <h3 class="auth-title">🏆 Achievements</h3>
@@ -86,6 +92,7 @@ else
 @code {
     private List<AchievementInfo> _achievements = [];
     private bool _loading = true;
+    private bool _initialized;
     private string? _error;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -93,9 +100,11 @@ else
         if (firstRender)
         {
             await AuthState.InitializeAsync();
+            _initialized = true;
             if (AuthState.IsAuthenticated)
                 await LoadAchievementsAsync();
-            StateHasChanged();
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

@@ -9,7 +9,13 @@
 
 <h3>Ping (Protected Endpoint)</h3>
 
-@if (!AuthState.IsAuthenticated)
+@if (!_initialized)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+    </div>
+}
+else if (!AuthState.IsAuthenticated)
 {
     <div class="alert alert-warning" data-testid="ping-unauthenticated">
         You are not logged in. <a href="/login">Login first</a>.
@@ -35,13 +41,15 @@ else if (errorMessage is not null)
     private PingResponse? pingResult;
     private string? errorMessage;
     private bool isLoading;
+    private bool _initialized;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await AuthState.InitializeAsync();
-            StateHasChanged();
+            _initialized = true;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

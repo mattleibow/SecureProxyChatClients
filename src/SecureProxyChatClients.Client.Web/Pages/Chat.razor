@@ -15,7 +15,13 @@
 
 <h3>Secure Chat</h3>
 
-@if (!AuthState.IsAuthenticated)
+@if (!_initialized)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+    </div>
+}
+else if (!AuthState.IsAuthenticated)
 {
     <div class="alert alert-warning" data-testid="chat-unauthenticated">
         You are not logged in. <a href="/login">Login first</a>.
@@ -129,15 +135,17 @@ else
     private bool isStreaming;
     private string streamingContent = string.Empty;
     private string? toolStatus;
+    private bool _initialized;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await AuthState.InitializeAsync();
+            _initialized = true;
             if (AuthState.IsAuthenticated)
                 await LoadSessionsAsync();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 

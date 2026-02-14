@@ -10,7 +10,13 @@
 
 <h3>📝 The Writer's Room</h3>
 
-@if (!AuthState.IsAuthenticated)
+@if (!_initialized)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+    </div>
+}
+else if (!AuthState.IsAuthenticated)
 {
     <div class="alert alert-warning" data-testid="writers-room-unauthenticated">
         You are not logged in. <a href="/login">Login first</a>.
@@ -106,6 +112,7 @@ else
     private string userPitch = string.Empty;
     private string? errorMessage;
     private bool isRunning;
+    private bool _initialized;
     private readonly List<AgentMessage> agentMessages = [];
     private CancellationTokenSource? cts;
 
@@ -114,7 +121,8 @@ else
         if (firstRender)
         {
             await AuthState.InitializeAsync();
-            StateHasChanged();
+            _initialized = true;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
