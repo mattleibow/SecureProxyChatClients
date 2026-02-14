@@ -1,0 +1,117 @@
+@page "/achievements"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>🏆 Achievements — LoreEngine</PageTitle>
+
+<div class="lore-page">
+    <div class="lore-card p-4 mb-4">
+        <h2 class="lore-heading">🏆 Achievements</h2>
+        <p class="text-muted">
+            Track your legendary deeds. 
+            @if (_achievements.Count > 0)
+            {
+                var unlocked = _achievements.Count(a => a.Unlocked);
+                <span>@unlocked / @_achievements.Count unlocked</span>
+            }
+        </p>
+        @if (_achievements.Count > 0)
+        {
+            var progress = (int)(100.0 * _achievements.Count(a => a.Unlocked) / _achievements.Count);
+            <div class="health-bar" style="width: 100%; height: 12px;">
+                <div class="health-bar-fill" style="width: @(progress)%; background: linear-gradient(90deg, var(--lore-gold-dim), var(--lore-gold-bright));"></div>
+            </div>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning"></div>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+    else
+    {
+        @foreach (var category in _achievements.GroupBy(a => a.Category))
+        {
+            <h4 class="mt-4 mb-3" style="font-family: var(--font-display); color: var(--lore-gold);">
+                @GetCategoryIcon(category.Key) @category.Key.ToUpperInvariant()
+            </h4>
+            <div class="row g-3">
+                @foreach (var ach in category)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="lore-card p-3 h-100 @(ach.Unlocked ? "" : "opacity-50")"
+                             style="border-left: 3px solid @(ach.Unlocked ? "var(--lore-gold)" : "var(--lore-border)");">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="me-2" style="font-size: 1.5rem;">@ach.Emoji</span>
+                                <div>
+                                    <strong style="color: @(ach.Unlocked ? "var(--lore-gold-bright)" : "var(--lore-text-dim)");">
+                                        @ach.Title
+                                    </strong>
+                                    @if (ach.Unlocked)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem;">UNLOCKED</span>
+                                    }
+                                </div>
+                            </div>
+                            <small class="text-muted">@ach.Description</small>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<AchievementInfo> _achievements = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<AchievementInfo>>("/api/play/achievements");
+            _achievements = result ?? [];
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load achievements: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string GetCategoryIcon(string category) => category switch
+    {
+        "combat" => "⚔️",
+        "exploration" => "🗺️",
+        "social" => "🤝",
+        "wealth" => "💰",
+        "progression" => "⬆️",
+        _ => "🏆",
+    };
+
+    private sealed class AchievementInfo
+    {
+        public string Id { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Emoji { get; set; } = "";
+        public string Category { get; set; } = "";
+        public bool Unlocked { get; set; }
+    }
+}
