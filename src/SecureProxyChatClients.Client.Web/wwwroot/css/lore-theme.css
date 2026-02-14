@@ -331,6 +331,13 @@ a:hover { color: var(--lore-gold-bright) !important; }
 
 .play-dice.success { color: var(--lore-emerald); border-color: var(--lore-emerald); }
 .play-dice.failure { color: var(--lore-crimson); border-color: var(--lore-crimson); }
+.play-dice.achievement {
+    color: var(--lore-gold-bright);
+    border-color: var(--lore-gold);
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.15), rgba(201, 168, 76, 0.05));
+    animation: glow-pulse 1s ease-in-out 3;
+    font-weight: 600;
+}
 
 /* Player stats bar */
 .player-stats {

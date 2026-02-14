@@ -470,6 +470,7 @@ else
 
     private static string GetEventClass(GameEvent evt)
     {
+        if (evt.Type == "Achievement") return "achievement";
         if (evt.Data is null) return "";
         try
         {
@@ -494,6 +495,7 @@ else
                 "ModifyHealth" => FormatHealthChange(evt.Data.Value),
                 "ModifyGold" => FormatGoldChange(evt.Data.Value),
                 "MovePlayer" => $"📍 Moved to: {evt.Data.Value.GetProperty("Location").GetString()}",
+                "Achievement" => $"🏆 Achievement Unlocked: {evt.Data.Value.GetProperty("Emoji").GetString()} {evt.Data.Value.GetProperty("Title").GetString()}",
                 _ => evt.Type,
             };
         }

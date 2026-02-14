@@ -28,6 +28,8 @@ public sealed record PlayerStateDto
     public string CurrentLocation { get; init; } = "The Crossroads";
     public List<InventoryItemDto> Inventory { get; init; } = [];
     public Dictionary<string, int> Stats { get; init; } = [];
+    public HashSet<string> UnlockedAchievements { get; init; } = [];
+    public HashSet<string> VisitedLocations { get; init; } = [];
 }
 
 public sealed record InventoryItemDto

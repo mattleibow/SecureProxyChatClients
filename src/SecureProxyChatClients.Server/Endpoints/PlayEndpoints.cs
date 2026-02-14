@@ -63,6 +63,7 @@ public static class PlayEndpoints
         group.MapGet("/state", GetPlayerStateAsync);
         group.MapPost("/new-game", StartNewGameAsync);
         group.MapGet("/twist", GetTwistOfFateAsync);
+        group.MapGet("/achievements", GetAchievementsAsync);
 
         return group;
     }
@@ -83,6 +84,29 @@ public static class PlayEndpoints
     {
         var twist = TwistOfFate.GetRandomTwist();
         return Results.Ok(new { twist.Title, twist.Prompt, twist.Emoji, twist.Category });
+    }
+
+    private static async Task<IResult> GetAchievementsAsync(
+        HttpContext httpContext,
+        IGameStateStore gameStateStore,
+        CancellationToken ct)
+    {
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
+
+        var state = await gameStateStore.GetOrCreatePlayerStateAsync(userId, ct);
+
+        var all = Achievements.All.Select(a => new
+        {
+            a.Id,
+            a.Title,
+            a.Description,
+            a.Emoji,
+            a.Category,
+            Unlocked = state.UnlockedAchievements.Contains(a.Id),
+        });
+
+        return Results.Ok(all);
     }
 
     private static async Task<IResult> StartNewGameAsync(
@@ -208,6 +232,18 @@ public static class PlayEndpoints
 
             if (functionCalls.Count == 0)
             {
+                // Check achievements
+                var newAchievements = Achievements.CheckAchievements(playerState, playerState.UnlockedAchievements);
+                foreach (var ach in newAchievements)
+                {
+                    playerState.UnlockedAchievements.Add(ach.Id);
+                    gameEvents.Add(new GameEvent
+                    {
+                        Type = "Achievement",
+                        Data = JsonSerializer.SerializeToElement(new { ach.Id, ach.Title, ach.Emoji, ach.Description }),
+                    });
+                }
+
                 // Final response — save state and return
                 await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
 

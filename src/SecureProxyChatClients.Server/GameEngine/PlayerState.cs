@@ -19,6 +19,8 @@ public sealed class PlayerState
         ["wisdom"] = 10,
         ["charisma"] = 10,
     };
+    public HashSet<string> VisitedLocations { get; set; } = ["The Crossroads"];
+    public HashSet<string> UnlockedAchievements { get; set; } = [];
 }
 
 public sealed class InventoryItem

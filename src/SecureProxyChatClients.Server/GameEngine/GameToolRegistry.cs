@@ -40,6 +40,7 @@ public sealed class GameToolRegistry
         {
             case LocationResult loc:
                 state.CurrentLocation = loc.Location;
+                state.VisitedLocations.Add(loc.Location);
                 return result;
 
             case ItemResult item when item.Added:
