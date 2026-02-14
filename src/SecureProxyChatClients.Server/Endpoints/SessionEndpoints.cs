@@ -23,13 +23,21 @@ public static class SessionEndpoints
         return group;
     }
 
+    private static string? TryGetUserId(HttpContext httpContext) =>
+        httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
     private static async Task<IResult> CreateSessionAsync(
         HttpContext httpContext,
         IConversationStore store,
+        ILogger<IConversationStore> logger,
         CancellationToken ct)
     {
-        string userId = GetUserId(httpContext);
+        string? userId = TryGetUserId(httpContext);
+        if (userId is null)
+            return Results.Unauthorized();
+
         string sessionId = await store.CreateSessionAsync(userId, ct);
+        logger.LogInformation("Session {SessionId} created for user {UserId}", sessionId, userId);
         return Results.Ok(new { sessionId });
     }
 
@@ -38,7 +46,10 @@ public static class SessionEndpoints
         IConversationStore store,
         CancellationToken ct)
     {
-        string userId = GetUserId(httpContext);
+        string? userId = TryGetUserId(httpContext);
+        if (userId is null)
+            return Results.Unauthorized();
+
         IReadOnlyList<SessionSummary> sessions = await store.GetUserSessionsAsync(userId, ct);
         return Results.Ok(sessions);
     }
@@ -49,7 +60,12 @@ public static class SessionEndpoints
         IConversationStore store,
         CancellationToken ct)
     {
-        string userId = GetUserId(httpContext);
+        if (string.IsNullOrWhiteSpace(id) || id.Length > 128)
+            return Results.BadRequest(new { error = "Invalid session ID." });
+
+        string? userId = TryGetUserId(httpContext);
+        if (userId is null)
+            return Results.Unauthorized();
 
         string? owner = await store.GetSessionOwnerAsync(id, ct);
         if (owner is null)
@@ -60,8 +76,4 @@ public static class SessionEndpoints
         IReadOnlyList<ChatMessageDto> history = await store.GetHistoryAsync(id, ct);
         return Results.Ok(history);
     }
-
-    private static string GetUserId(HttpContext httpContext) =>
-        httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-        ?? throw new UnauthorizedAccessException("User ID not found in claims.");
 }

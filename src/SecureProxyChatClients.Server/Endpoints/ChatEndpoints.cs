@@ -15,6 +15,7 @@ namespace SecureProxyChatClients.Server.Endpoints;
 public static class ChatEndpoints
 {
     private const int MaxToolCallRounds = 5;
+    private const int MaxToolResultLength = 32_768;
 
     public static RouteGroupBuilder MapChatEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -40,6 +41,7 @@ public static class ChatEndpoints
         SystemPromptService systemPromptService,
         ServerToolRegistry serverToolRegistry,
         IConversationStore conversationStore,
+        ILogger<IConversationStore> logger,
         CancellationToken cancellationToken)
     {
         // Validate and sanitize input
@@ -47,22 +49,34 @@ public static class ChatEndpoints
         if (!isValid)
             return Results.BadRequest(new { error });
 
-        string userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null)
+            return Results.Unauthorized();
 
         // Session management: use provided or auto-create
         string sessionId;
         if (sanitizedRequest!.SessionId is { Length: > 0 } sid)
         {
+            if (sid.Length > 128)
+                return Results.BadRequest(new { error = "Invalid session ID." });
+
             string? owner = await conversationStore.GetSessionOwnerAsync(sid, cancellationToken);
             if (owner is null)
+            {
+                logger.LogWarning("Session {SessionId} not found for user {UserId}", sid, userId);
                 return Results.NotFound(new { error = "Session not found." });
+            }
             if (owner != userId)
+            {
+                logger.LogWarning("User {UserId} denied access to session {SessionId}", userId, sid);
                 return Results.Forbid();
+            }
             sessionId = sid;
         }
         else
         {
             sessionId = await conversationStore.CreateSessionAsync(userId, cancellationToken);
+            logger.LogInformation("Auto-created session {SessionId} for user {UserId}", sessionId, userId);
         }
 
         // Persist user messages
@@ -121,16 +135,35 @@ public static class ChatEndpoints
                 AIFunction? serverTool = serverToolRegistry.GetTool(functionCall.Name);
                 if (serverTool is not null)
                 {
-                    // Execute server tool and add result to messages
-                    AIFunctionArguments? args = functionCall.Arguments is { Count: > 0 }
-                        ? new AIFunctionArguments(functionCall.Arguments!)
-                        : null;
-                    object? result = await serverTool.InvokeAsync(args, cancellationToken);
-                    string resultJson = JsonSerializer.Serialize(result);
-                    chatMessages.Add(new ChatMessage(ChatRole.Tool,
-                    [
-                        new FunctionResultContent(functionCall.CallId, resultJson),
-                    ]));
+                    logger.LogInformation("Executing server tool {ToolName} (round {Round})", functionCall.Name, round + 1);
+                    try
+                    {
+                        AIFunctionArguments? args = functionCall.Arguments is { Count: > 0 }
+                            ? new AIFunctionArguments(functionCall.Arguments!)
+                            : null;
+                        object? result = await serverTool.InvokeAsync(args, cancellationToken);
+                        string resultJson = JsonSerializer.Serialize(result);
+
+                        // Guard against oversized tool results
+                        if (resultJson.Length > MaxToolResultLength)
+                        {
+                            logger.LogWarning("Tool {ToolName} result truncated from {Length} chars", functionCall.Name, resultJson.Length);
+                            resultJson = resultJson[..MaxToolResultLength];
+                        }
+
+                        chatMessages.Add(new ChatMessage(ChatRole.Tool,
+                        [
+                            new FunctionResultContent(functionCall.CallId, resultJson),
+                        ]));
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Server tool {ToolName} failed", functionCall.Name);
+                        chatMessages.Add(new ChatMessage(ChatRole.Tool,
+                        [
+                            new FunctionResultContent(functionCall.CallId, $"Tool error: {ex.Message}"),
+                        ]));
+                    }
                 }
                 else
                 {
@@ -152,6 +185,7 @@ public static class ChatEndpoints
         }
 
         // Max rounds exceeded — return whatever we have
+        logger.LogWarning("Tool call limit ({MaxRounds}) reached for session {SessionId}", MaxToolCallRounds, sessionId);
         return Results.Ok(new Shared.Contracts.ChatResponse
         {
             Messages = [new ChatMessageDto { Role = "assistant", Content = "Tool processing limit reached." }],
@@ -166,6 +200,7 @@ public static class ChatEndpoints
         InputValidator inputValidator,
         SystemPromptService systemPromptService,
         IConversationStore conversationStore,
+        ILogger<IConversationStore> logger,
         CancellationToken cancellationToken)
     {
         // Validate and sanitize input
@@ -177,12 +212,24 @@ public static class ChatEndpoints
             return;
         }
 
-        string userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null)
+        {
+            httpContext.Response.StatusCode = 401;
+            return;
+        }
 
         // Session management
         string sessionId;
         if (sanitizedRequest!.SessionId is { Length: > 0 } sid)
         {
+            if (sid.Length > 128)
+            {
+                httpContext.Response.StatusCode = 400;
+                await httpContext.Response.WriteAsJsonAsync(new { error = "Invalid session ID." }, cancellationToken);
+                return;
+            }
+
             string? owner = await conversationStore.GetSessionOwnerAsync(sid, cancellationToken);
             if (owner is null || owner != userId)
             {
@@ -216,16 +263,36 @@ public static class ChatEndpoints
 
         // Stream from IChatClient and collect full response for persistence
         var fullText = new System.Text.StringBuilder();
-        await foreach (ChatResponseUpdate update in chatClient.GetStreamingResponseAsync(
-            chatMessages, cancellationToken: cancellationToken))
+        try
         {
-            if (update.Text is { Length: > 0 } text)
+            await foreach (ChatResponseUpdate update in chatClient.GetStreamingResponseAsync(
+                chatMessages, cancellationToken: cancellationToken))
             {
-                fullText.Append(text);
-                string data = JsonSerializer.Serialize(new { text });
-                await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
-                await httpContext.Response.Body.FlushAsync(cancellationToken);
+                if (update.Text is { Length: > 0 } text)
+                {
+                    fullText.Append(text);
+                    string data = JsonSerializer.Serialize(new { text });
+                    await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
+                    await httpContext.Response.Body.FlushAsync(cancellationToken);
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogInformation("Stream cancelled for session {SessionId}", sessionId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Stream error for session {SessionId}", sessionId);
+            if (!httpContext.Response.HasStarted)
+            {
+                httpContext.Response.StatusCode = 500;
+                return;
+            }
+            // If already streaming, send error event
+            string errorData = JsonSerializer.Serialize(new { error = "Stream interrupted." });
+            await httpContext.Response.WriteAsync($"event: error\ndata: {errorData}\n\n", CancellationToken.None);
+            await httpContext.Response.Body.FlushAsync(CancellationToken.None);
         }
 
         // Persist assistant response
@@ -237,8 +304,8 @@ public static class ChatEndpoints
 
         // Send done event with sessionId
         string doneData = JsonSerializer.Serialize(new { sessionId });
-        await httpContext.Response.WriteAsync($"event: done\ndata: {doneData}\n\n", cancellationToken);
-        await httpContext.Response.Body.FlushAsync(cancellationToken);
+        await httpContext.Response.WriteAsync($"event: done\ndata: {doneData}\n\n", CancellationToken.None);
+        await httpContext.Response.Body.FlushAsync(CancellationToken.None);
     }
 
     private static List<ChatMessage> ConvertToChatMessages(IReadOnlyList<ChatMessageDto> dtos)

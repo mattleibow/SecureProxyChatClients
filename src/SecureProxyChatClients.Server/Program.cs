@@ -30,8 +30,8 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
         policy.WithOrigins(clientOrigin)
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+              .WithHeaders("Content-Type", "Authorization", "Accept")
+              .WithMethods("GET", "POST", "OPTIONS"));
 });
 
 builder.Services.AddOpenApi();

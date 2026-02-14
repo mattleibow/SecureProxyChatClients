@@ -24,7 +24,8 @@ public static class AiServiceExtensions
 
             case "copilotcli":
                 string model = configuration.GetValue<string>("AI:CopilotCli:Model") ?? "gpt-5-mini";
-                services.AddSingleton<IChatClient>(new CopilotCliChatClient(model));
+                services.AddSingleton<IChatClient>(sp =>
+                    new CopilotCliChatClient(sp.GetRequiredService<ILogger<CopilotCliChatClient>>(), model));
                 break;
 
             case "azureopenai":

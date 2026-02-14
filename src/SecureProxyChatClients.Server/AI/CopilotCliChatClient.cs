@@ -4,8 +4,10 @@ using Microsoft.Extensions.AI;
 
 namespace SecureProxyChatClients.Server.AI;
 
-public sealed class CopilotCliChatClient(string model = "gpt-5-mini") : IChatClient
+public sealed class CopilotCliChatClient(ILogger<CopilotCliChatClient> logger, string model = "gpt-5-mini") : IChatClient
 {
+    private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(60);
+
     public async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -22,12 +24,36 @@ public sealed class CopilotCliChatClient(string model = "gpt-5-mini") : IChatCli
             UseShellExecute = false,
         };
 
-        using Process process = Process.Start(psi)!;
-        string output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            using Process process = Process.Start(psi)
+                ?? throw new InvalidOperationException("Failed to start copilot process.");
 
-        string cleanOutput = StripCopilotFooter(output);
-        return new ChatResponse(new ChatMessage(ChatRole.Assistant, cleanOutput));
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(ProcessTimeout);
+
+            string output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            await process.WaitForExitAsync(timeoutCts.Token);
+
+            if (process.ExitCode != 0)
+            {
+                string stderr = await process.StandardError.ReadToEndAsync(CancellationToken.None);
+                logger.LogWarning("Copilot CLI exited with code {ExitCode}: {StdErr}", process.ExitCode, stderr);
+            }
+
+            string cleanOutput = StripCopilotFooter(output);
+            return new ChatResponse(new ChatMessage(ChatRole.Assistant, cleanOutput));
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning("Copilot CLI timed out after {Timeout}s", ProcessTimeout.TotalSeconds);
+            return new ChatResponse(new ChatMessage(ChatRole.Assistant, "AI request timed out. Please try again."));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Copilot CLI invocation failed");
+            return new ChatResponse(new ChatMessage(ChatRole.Assistant, "AI service temporarily unavailable."));
+        }
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
