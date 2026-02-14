@@ -601,18 +601,23 @@ public static class PlayEndpoints
             logger.LogError(ex, "Play stream error for user {UserId}", userId);
         }
 
-        // Persist
+        // Persist — apply final content filter to catch split-XSS before storage
         if (fullText.Length > 0)
         {
-            // Use a short timeout for persistence
+            var finalFiltered = contentFilter.FilterResponse(new Shared.Contracts.ChatResponse
+            {
+                Messages = [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }]
+            });
+            string sanitizedFull = finalFiltered.Messages[0].Content ?? fullText.ToString();
+
             using var saveCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             try
             {
                 await conversationStore.AppendMessagesAsync(sessionId,
-                    [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], saveCts.Token);
+                    [new ChatMessageDto { Role = "assistant", Content = sanitizedFull }], saveCts.Token);
                 
                 // Store the narrative as a story memory (truncated for brevity)
-                string summary = fullText.Length > 200 ? fullText.ToString()[..200] + "..." : fullText.ToString();
+                string summary = sanitizedFull.Length > 200 ? sanitizedFull[..200] + "..." : sanitizedFull;
                 await memoryService.StoreMemoryAsync(userId, sessionId, summary, "event", ct: saveCts.Token);
             }
             catch (OperationCanceledException) { /* Best effort save */ }
