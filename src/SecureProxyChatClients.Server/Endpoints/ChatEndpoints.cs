@@ -180,6 +180,34 @@ public static class ChatEndpoints
                 "tool" => ChatRole.Tool,
                 _ => ChatRole.User,
             };
+
+            // Reconstruct assistant messages with tool calls
+            if (role == ChatRole.Assistant && dto.ToolCalls is { Count: > 0 })
+            {
+                List<AIContent> contents = [];
+                if (dto.Content is { Length: > 0 })
+                    contents.Add(new TextContent(dto.Content));
+                foreach (var tc in dto.ToolCalls)
+                {
+                    Dictionary<string, object?>? args = tc.Arguments is { } a
+                        ? JsonSerializer.Deserialize<Dictionary<string, object?>>(a.GetRawText())
+                        : null;
+                    contents.Add(new FunctionCallContent(tc.CallId, tc.Name, args));
+                }
+                messages.Add(new ChatMessage(ChatRole.Assistant, contents));
+                continue;
+            }
+
+            // Reconstruct tool result messages
+            if (role == ChatRole.Tool && dto.ToolCallId is not null)
+            {
+                messages.Add(new ChatMessage(ChatRole.Tool,
+                [
+                    new FunctionResultContent(dto.ToolCallId, dto.Content ?? ""),
+                ]));
+                continue;
+            }
+
             messages.Add(new ChatMessage(role, dto.Content));
         }
         return messages;
@@ -207,37 +235,25 @@ public static class ChatEndpoints
     {
         List<ChatMessageDto> messages = [];
 
-        // Add any text content from the response
-        foreach (ChatMessage msg in aiResponse.Messages)
+        // Build an assistant message with text + tool calls combined
+        List<ToolCallDto> toolCallDtos = clientToolCalls.Select(tc => new ToolCallDto
         {
-            if (msg.Text is { Length: > 0 })
-            {
-                messages.Add(new ChatMessageDto
-                {
-                    Role = msg.Role.Value,
-                    Content = msg.Text,
-                });
-            }
-        }
+            CallId = tc.CallId,
+            Name = tc.Name,
+            Arguments = tc.Arguments is not null
+                ? JsonSerializer.SerializeToElement(tc.Arguments)
+                : null,
+        }).ToList();
 
-        // Add tool call messages for the client to handle
-        foreach (FunctionCallContent toolCall in clientToolCalls)
+        string? textContent = string.Join("",
+            aiResponse.Messages.Where(m => m.Text is { Length: > 0 }).Select(m => m.Text));
+
+        messages.Add(new ChatMessageDto
         {
-            string argsJson = toolCall.Arguments is not null
-                ? JsonSerializer.Serialize(toolCall.Arguments)
-                : "{}";
-
-            messages.Add(new ChatMessageDto
-            {
-                Role = "tool_call",
-                Content = JsonSerializer.Serialize(new
-                {
-                    callId = toolCall.CallId,
-                    name = toolCall.Name,
-                    arguments = argsJson,
-                }),
-            });
-        }
+            Role = "assistant",
+            Content = textContent is { Length: > 0 } ? textContent : null,
+            ToolCalls = toolCallDtos,
+        });
 
         return new Shared.Contracts.ChatResponse { Messages = messages };
     }
