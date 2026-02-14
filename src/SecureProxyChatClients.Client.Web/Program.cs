@@ -12,7 +12,7 @@ builder.Services.AddScoped<AuthState>();
 builder.Services.AddTransient<AuthenticatedHttpMessageHandler>();
 
 var serverUrl = builder.Configuration.GetValue<string>("ServerUrl")
-    ?? "http://localhost:5167";
+    ?? "https://localhost:5167";
 
 builder.Services.AddHttpClient("ServerApi", client =>
     {

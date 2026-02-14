@@ -279,6 +279,55 @@ POST /api/play/stream
 
 **Response:** Server-Sent Events (SSE) stream with same event types as `/api/chat/stream`.
 
+### Get Player State
+
+```
+GET /api/play/state
+```
+
+**Response (200 OK):**
+```json
+{
+  "health": 100,
+  "gold": 50,
+  "xp": 250,
+  "level": 3,
+  "inventory": ["Rusty Sword", "Health Potion"]
+}
+```
+
+### Start New Game
+
+```
+POST /api/play/new-game
+```
+
+**Response (200 OK):** Returns initial game state with fresh character.
+
+### Get Twist of Fate
+
+```
+GET /api/play/twist
+```
+
+**Response (200 OK):**
+```json
+{
+  "title": "A Stranger Approaches",
+  "prompt": "A mysterious figure emerges from the shadows...",
+  "emoji": "🎭",
+  "category": "encounter"
+}
+```
+
+### Get Achievements
+
+```
+GET /api/play/achievements
+```
+
+**Response (200 OK):** Returns list of player achievements.
+
 ### Consult the Oracle
 
 ```
@@ -301,16 +350,32 @@ POST /api/play/oracle
 }
 ```
 
+### Get World Map
+
+```
+GET /api/play/map
+```
+
+**Response (200 OK):** Returns world map data.
+
+### Get Random Encounter
+
+```
+GET /api/play/encounter
+```
+
+**Response (200 OK):** Returns a randomly generated encounter.
+
 ---
 
 ## Memory Endpoints
 
-All memory endpoints require authentication. Memory stores persistent story/game data using vector similarity search.
+All memory endpoints require authentication. Memory stores persistent story/game data.
 
 ### Store Memory
 
 ```
-POST /api/memory
+POST /api/memory/store
 ```
 
 **Request Body:**
@@ -331,20 +396,10 @@ POST /api/memory
 }
 ```
 
-### Search Memories
+### Get Recent Memories
 
 ```
-POST /api/memory/search
-```
-
-**Request Body:**
-```json
-{
-  "query": "dragon",
-  "memoryType": "lore",
-  "sessionId": "play-session-id",
-  "limit": 5
-}
+GET /api/memory/recent?sessionId=play-session-id&limit=10
 ```
 
 **Response (200 OK):**
@@ -354,7 +409,8 @@ POST /api/memory/search
     {
       "id": "memory-uuid",
       "content": "The ancient dragon Veltharis guards the Crystalspire",
-      "score": 0.95
+      "memoryType": "lore",
+      "createdAt": "2026-02-14T10:30:00Z"
     }
   ]
 }

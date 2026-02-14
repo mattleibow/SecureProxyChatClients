@@ -77,7 +77,7 @@ public class CopilotCliChatClient(string model = "gpt-5-mini") : IChatClient
 
         var psi = new ProcessStartInfo("copilot")
         {
-            Arguments = $"""-p "{EscapeForShell(prompt)}" --model {model} --available-tools "" --allow-all-tools""",
+            Arguments = $"""-p "{EscapeForShell(prompt)}" --model {model} --available-tools "" """,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

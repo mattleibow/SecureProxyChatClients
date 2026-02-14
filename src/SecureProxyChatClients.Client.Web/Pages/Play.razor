@@ -760,7 +760,7 @@ else
         try
         {
             await Task.Yield();
-            await JS.InvokeVoidAsync("eval", "(() => { const el = document.getElementById('story-area'); if(el) el.scrollTop = el.scrollHeight; })()");
+            await JS.InvokeVoidAsync("scrollToBottom", "story-area");
         }
         catch { /* JS interop may fail during dispose */ }
     }

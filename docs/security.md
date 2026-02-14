@@ -42,21 +42,9 @@ Account lockout protects against brute-force credential attacks by temporarily d
 All API endpoints (`/api/chat`, `/api/sessions`, `/api/memory`, `/api/play`, `/api/ping`) require `IdentityConstants.BearerScheme`. This is a deliberate security design:
 
 - **Bearer tokens are not sent automatically by browsers**, which eliminates the entire class of cross-site request forgery (CSRF) attacks. There is no ambient authority for an attacker to exploit.
-- **Cookie authentication is scoped exclusively to the Identity UI endpoints** (login, registration, and account management pages served by `MapIdentityApi`).
+- **Cookie authentication is disabled for API endpoints** — only Bearer token authentication is accepted.
 
 This separation ensures that even if an attacker can induce a victim's browser to make a cross-origin request to an API endpoint, the request will not carry any authentication credential and will be rejected with `401 Unauthorized`.
-
-### Cookie security
-
-Identity cookies used for the UI sign-in flow are configured with defense-in-depth properties in `Program.cs`:
-
-| Property | Value | Purpose |
-|---|---|---|
-| `HttpOnly` | `true` | Prevents JavaScript access to the cookie |
-| `SecurePolicy` | `Always` | Cookie is only transmitted over HTTPS |
-| `SameSite` | `Strict` | Browser never sends the cookie on cross-site requests |
-| `ExpireTimeSpan` | 2 hours | Limits the window of exposure for a stolen cookie |
-| `SlidingExpiration` | `true` | Active sessions are refreshed automatically |
 
 ### User identity extraction
 
@@ -190,7 +178,7 @@ A custom middleware in `Program.cs` sets the following headers on every response
 
 ### Transport security
 
-- **HTTPS redirection** is enforced via `app.UseHttpsRedirection()` in all environments.
+- **HTTPS redirection** is enforced via `app.UseHttpsRedirection()` in production environments (disabled in development for local tooling compatibility).
 - **HSTS** (HTTP Strict Transport Security) is enabled via `app.UseHsts()` in non-development environments. This instructs browsers to only connect over HTTPS for future requests.
 
 ### CORS policy
@@ -234,6 +222,9 @@ The `"chat"` rate limiting policy is applied to:
 
 - `/api/chat` and `/api/chat/stream` endpoints
 - `/api/play` endpoints
+- `/api/ping` endpoint
+
+A separate `"auth"` rate limiting policy (10 requests/minute per IP, fixed window) is applied to Identity endpoints (`/login`, `/register`) to prevent brute-force attacks.
 
 Session management and memory endpoints do not carry the rate limiting policy, as they do not invoke the AI provider and are lower-cost operations.
 
@@ -377,7 +368,7 @@ Use this checklist when deploying SecureProxyChatClients to a production environ
 
 - [ ] Bearer token scheme is the only authentication path to API endpoints
 - [ ] Account lockout is enabled (default: 5 attempts, 5-minute lockout)
-- [ ] Cookie `SameSite`, `HttpOnly`, and `Secure` properties are verified in production
+- [ ] Bearer token storage is handled securely (in-memory, never persisted to disk/localStorage)
 
 ### Rate limiting
 

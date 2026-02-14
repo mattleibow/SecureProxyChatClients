@@ -118,7 +118,7 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-13: Agent Framework agents on client is the right pattern — server is a secure augmenting proxy (auth, tools, filtering), client orchestrates agents
 - 2026-02-13: Mixed test frameworks (xUnit + NUnit) increase CI discovery flakiness — prefer single framework or hard-isolate pipelines
 - 2026-02-13: Microsoft.Playwright.Xunit exists — provides same `PageTest` base class as NUnit variant, uses `[Fact]` + `IAsyncLifetime` instead of `[Test]` + `[SetUp]`/`[TearDown]`
-- 2026-02-13: `copilot -p "prompt" --model gpt-5-mini --available-tools "" --allow-all-tools` works for non-interactive AI calls; output includes a usage footer that must be stripped
+- 2026-02-13: `copilot -p "prompt" --model gpt-5-mini --available-tools ""` works for non-interactive AI calls; output includes a usage footer that must be stripped. Note: `--allow-all-tools` was removed for security.
 - 2026-02-13: ProxyChatClient is NOT a thin HTTP wrapper — it's a tool-aware loop that handles client tool calls transparently before returning to the caller. The agent doesn't know if a tool ran on server or client.
 - 2026-02-13: When server receives a tool call it doesn't recognize (client tool), it returns the raw tool call response — server does NOT need to know about client tools
 - 2026-02-13: "Secure augmenting proxy" — server adds auth, security, tools, content filtering, and enriches/augments client requests before forwarding to AI. Not a passthrough.
