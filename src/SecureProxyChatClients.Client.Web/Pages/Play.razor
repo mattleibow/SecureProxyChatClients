@@ -34,10 +34,10 @@ else if (playerState is null && !isLoading)
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="mb-3">
+        <div class="col-lg-10">
+            <div class="mb-4">
                 <label class="form-label">Character Name</label>
-                <input type="text" class="form-control" @bind="characterName" @bind:event="oninput"
+                <input type="text" class="form-control form-control-lg" @bind="characterName" @bind:event="oninput"
                        placeholder="Enter your hero's name..." maxlength="30"
                        data-testid="character-name" />
             </div>
@@ -46,17 +46,17 @@ else if (playerState is null && !isLoading)
             <div class="row g-3 mb-4">
                 @foreach (var cls in characterClasses)
                 {
-                    <div class="col-6 col-md-3">
-                        <div class="card h-100 @(selectedClass == cls.Key ? "border-primary glow-active" : "")"
+                    <div class="col-6">
+                        <div class="card h-100 class-card @(selectedClass == cls.Key ? "border-primary glow-active" : "")"
                              style="cursor: pointer;"
                              @onclick="() => selectedClass = cls.Key"
                              data-testid="class-@cls.Key">
-                            <div class="card-body text-center">
-                                <div style="font-size: 2.5em;">@cls.Value.Emoji</div>
-                                <h5 style="font-family: var(--font-display); color: var(--lore-gold-bright);">@cls.Value.Name</h5>
-                                <small class="text-muted">@cls.Value.Description</small>
-                                <div class="mt-2" style="font-size: 0.75rem;">
-                                    <span class="text-muted">@cls.Value.Stats</span>
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div style="font-size: 2.5em; min-width: 50px; text-align: center;">@cls.Value.Emoji</div>
+                                <div>
+                                    <h5 class="mb-1" style="font-family: var(--font-display); color: var(--lore-gold-bright);">@cls.Value.Name</h5>
+                                    <div class="text-muted" style="font-size: 0.9rem;">@cls.Value.Description</div>
+                                    <div class="mt-1" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--lore-text-dim);">@cls.Value.Stats</div>
                                 </div>
                             </div>
                         </div>
@@ -77,38 +77,27 @@ else if (playerState is null && !isLoading)
 else if (playerState is not null)
 {
     <!-- Game UI -->
-    <div class="d-flex gap-3" data-testid="play-container">
+    <div class="d-flex gap-3" style="overflow: hidden;" data-testid="play-container">
         <!-- Main game area -->
-        <div class="flex-grow-1">
+        <div class="flex-grow-1" style="min-width: 0;">
             <!-- Player stats bar -->
             <div class="player-stats mb-3" data-testid="player-stats">
-                <div>
-                    <span class="stat-label">Player</span>
-                    <span class="stat-value">@playerState.Name the @playerState.CharacterClass</span>
+                <span class="stat-badge">⚔️</span>
+                <span class="stat-value" style="color: var(--lore-gold-bright);">@playerState.Name</span>
+                <span class="stat-dim">@playerState.CharacterClass</span>
+                <span class="stat-sep">│</span>
+                <span class="stat-label">LVL</span>
+                <span class="stat-value stat-xp">@playerState.Level</span>
+                <span class="stat-sep">│</span>
+                <span class="stat-label">HP</span>
+                <span class="stat-value stat-hp">@playerState.Health/@playerState.MaxHealth</span>
+                <div class="health-bar">
+                    <div class="health-bar-fill" style="width: @(playerState.MaxHealth > 0 ? (int)(100.0 * playerState.Health / playerState.MaxHealth) : 0)%"></div>
                 </div>
-                <div>
-                    <span class="stat-label">Lvl</span>
-                    <span class="stat-value stat-xp">@playerState.Level</span>
-                </div>
-                <div>
-                    <span class="stat-label">HP</span>
-                    <span class="stat-value stat-hp">@playerState.Health/@playerState.MaxHealth</span>
-                    <div class="health-bar ms-1">
-                        <div class="health-bar-fill" style="width: @(playerState.MaxHealth > 0 ? (int)(100.0 * playerState.Health / playerState.MaxHealth) : 0)%"></div>
-                    </div>
-                </div>
-                <div>
-                    <span class="stat-label">Gold</span>
-                    <span class="stat-value stat-gold">@playerState.Gold</span>
-                </div>
-                <div>
-                    <span class="stat-label">XP</span>
-                    <span class="stat-value stat-xp">@playerState.Experience</span>
-                </div>
-                <div class="ms-auto">
-                    <span class="stat-label">📍</span>
-                    <span class="stat-value">@playerState.CurrentLocation</span>
-                </div>
+                <span class="stat-sep">│</span>
+                <span class="stat-value stat-gold">💰@playerState.Gold</span>
+                <span class="stat-value stat-xp">✨@playerState.Experience</span>
+                <span class="ms-auto stat-value">📍 @playerState.CurrentLocation</span>
             </div>
 
             <!-- Game events (dice rolls, items, etc.) -->
@@ -125,7 +114,7 @@ else if (playerState is not null)
             }
 
             <!-- Story area -->
-            <div class="story-area" style="max-height: 55vh; overflow-y: auto; padding-right: 0.5rem;" data-testid="story-area">
+            <div class="story-area" style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;" data-testid="story-area">
                 @foreach (var msg in storyMessages)
                 {
                     <GameMessage Content="@msg.Content" Role="@msg.Role" />
@@ -133,14 +122,14 @@ else if (playerState is not null)
 
                 @if (isStreaming && !string.IsNullOrEmpty(streamingContent))
                 {
-                    <div class="play-scene">
+                    <div class="play-scene streaming">
                         <span>@streamingContent</span>
                         <span class="typing-cursor"></span>
                     </div>
                 }
             </div>
 
-            <hr class="lore-separator" />
+            <hr class="lore-separator my-2" />
 
             <!-- Action input -->
             <div class="d-flex gap-2" data-testid="action-input">
@@ -149,15 +138,16 @@ else if (playerState is not null)
                        @onkeydown="HandleKeyDown"
                        disabled="@isStreaming"
                        data-testid="action-text" />
-                <button class="btn btn-primary" @onclick="SendAction"
+                <button class="btn btn-primary px-4" @onclick="SendAction"
                         disabled="@(isStreaming || string.IsNullOrWhiteSpace(actionInput))"
                         data-testid="send-action">
                     ⚔️ Act
                 </button>
             </div>
 
-            <!-- Quick actions -->
-            <div class="d-flex gap-2 mt-2 flex-wrap">
+            <!-- Quick actions — grouped by type -->
+            <div class="d-flex gap-2 mt-2 flex-wrap align-items-center">
+                <span class="text-muted" style="font-size: 0.7rem; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.1em;">Actions:</span>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Look around and describe what I see"))"
                         disabled="@isStreaming">👁️ Look</button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Check my inventory and equipment"))"
@@ -168,8 +158,9 @@ else if (playerState is not null)
                         disabled="@isStreaming">🔍 Search</button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Rest and recover some health"))"
                         disabled="@isStreaming">💤 Rest</button>
+                <span class="text-muted mx-1">|</span>
                 <button class="btn btn-outline-warning btn-sm" @onclick="TriggerTwistOfFate"
-                        disabled="@isStreaming" title="Something unexpected happens...">🌀 Twist of Fate</button>
+                        disabled="@isStreaming" title="Something unexpected happens...">🌀 Twist</button>
                 <button class="btn btn-outline-info btn-sm" @onclick="ConsultOracle"
                         disabled="@isStreaming" title="Ask the Oracle for a cryptic hint...">👁️ Oracle</button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="ShowMap"
@@ -183,7 +174,7 @@ else if (playerState is not null)
         </div>
 
         <!-- Inventory sidebar -->
-        <div class="inventory-sidebar" style="width: 220px; min-width: 220px;" data-testid="inventory-sidebar">
+        <div class="inventory-sidebar" style="width: 220px; min-width: 180px; flex-shrink: 0;" data-testid="inventory-sidebar">
             <div class="card">
                 <div class="card-header">🎒 Inventory</div>
                 <div class="card-body py-2">
@@ -197,7 +188,7 @@ else if (playerState is not null)
                         {
                             <div class="inventory-item" title="@item.Description">
                                 @item.Emoji @item.Name
-                                @if (item.Quantity > 1) { <small class="text-muted">x@item.Quantity</small> }
+                                @if (item.Quantity > 1) { <small class="text-muted">x@(item.Quantity)</small> }
                             </div>
                         }
                     }

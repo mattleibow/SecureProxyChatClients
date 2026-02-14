@@ -488,3 +488,6 @@ secrets.json
 *.db
 *.db-shm
 *.db-wal
+
+# Dev secrets
+appsettings.Development.json

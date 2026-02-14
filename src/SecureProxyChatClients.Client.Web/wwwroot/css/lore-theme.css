@@ -342,13 +342,38 @@ a:hover { color: var(--lore-gold-bright) !important; }
 /* Player stats bar */
 .player-stats {
     display: flex;
-    gap: 1rem;
-    padding: 0.5rem 1rem;
-    background-color: var(--lore-bg-deep);
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, var(--lore-bg-deep), rgba(201, 168, 76, 0.03));
     border: 1px solid var(--lore-border);
+    border-bottom: 2px solid var(--lore-gold-dim);
     border-radius: 4px;
     font-family: var(--font-mono);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.stat-sep {
+    color: var(--lore-border-glow);
+    font-size: 0.75rem;
+}
+
+.stat-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-badge {
+    font-size: 1rem;
+}
+
+.stat-dim {
+    color: var(--lore-text-dim);
+    font-size: 0.75rem;
 }
 
 .stat-label {
@@ -596,6 +621,16 @@ a:hover { color: var(--lore-gold-bright) !important; }
 
 /* ── Character class card highlighting ────────────────── */
 
+.class-card {
+    transition: all 0.2s ease;
+}
+
+.class-card:hover {
+    border-color: var(--lore-gold-dim) !important;
+    box-shadow: var(--glow-gold);
+    transform: translateY(-2px);
+}
+
 .card.glow-active {
     border-color: var(--lore-gold) !important;
     background-color: rgba(201, 168, 76, 0.05) !important;
@@ -649,8 +684,8 @@ a:hover { color: var(--lore-gold-bright) !important; }
 @media (max-width: 768px) {
     .player-stats {
         flex-wrap: wrap;
-        gap: 0.5rem;
-        font-size: 0.75rem;
+        gap: 0.4rem;
+        font-size: 0.7rem;
     }
 
     .inventory-sidebar {
