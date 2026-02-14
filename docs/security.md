@@ -28,12 +28,14 @@ The server uses ASP.NET Core Identity with the **Bearer token** authentication s
 
 | Setting | Value |
 |---|---|
-| Minimum password length | 8 characters |
+| Minimum password length | 12 characters |
 | Require digit | Yes |
-| Require non-alphanumeric | No |
+| Require non-alphanumeric | Yes |
+| Require uppercase | Yes |
+| Require lowercase | Yes |
 | Email confirmation required | No |
 | Max failed login attempts | 5 |
-| Lockout duration | 5 minutes |
+| Lockout duration | 15 minutes |
 
 Account lockout protects against brute-force credential attacks by temporarily disabling accounts after five consecutive failed login attempts.
 

@@ -23,7 +23,7 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
         await _page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 60_000 });
 
         await _page.Locator("[data-testid='login-email']").FillAsync("test@test.com");
-        await _page.Locator("[data-testid='login-password']").FillAsync("Test123!");
+        await _page.Locator("[data-testid='login-password']").FillAsync("TestPassword1!");
         await _page.Locator("[data-testid='login-submit']").ClickAsync();
 
         await _page.WaitForURLAsync("**/ping", new() { Timeout = 30_000 });

@@ -35,10 +35,12 @@ builder.Services.AddIdentityApiEndpoints<IdentityUser>(options =>
     {
         options.SignIn.RequireConfirmedEmail = false;
         options.Password.RequireDigit = true;
-        options.Password.RequiredLength = 8;
-        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 12;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
         options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
     .AddEntityFrameworkStores<AppDbContext>();
 
@@ -138,9 +140,13 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // Forwarded headers — ensures correct client IP behind reverse proxies (load balancers, Azure App Service)
+// IMPORTANT: In production, configure KnownProxies/KnownNetworks to match your infrastructure.
+// Clearing defaults prevents trusting arbitrary X-Forwarded-For headers from untrusted sources.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -204,9 +210,9 @@ app.UseExceptionHandler();
 
 app.UseForwardedHeaders();
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
 
 app.MapIdentityApi<IdentityUser>()
     .RequireRateLimiting("auth");

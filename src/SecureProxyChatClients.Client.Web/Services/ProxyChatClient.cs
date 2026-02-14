@@ -84,6 +84,13 @@ public sealed class ProxyChatClient(HttpClient httpClient, ClientToolRegistry cl
         return new AIChatResponse(new ChatMessage(ChatRole.Assistant, "Tool processing limit reached."));
     }
 
+    // [Note]
+    // This implementation mimics streaming by yielding chunks from a completed response.
+    // Ideally, this should use the /api/chat/stream endpoint for true SSE streaming.
+    // However, the current server-side streaming endpoint does not support tool execution.
+    // To maintain tool support for this sample, we use the non-streaming endpoint here.
+    // A production implementation should implement tool support in the streaming endpoint
+    // or use a separate client for streaming-only interactions.
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,

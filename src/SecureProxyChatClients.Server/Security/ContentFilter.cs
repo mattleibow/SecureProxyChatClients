@@ -5,12 +5,20 @@ namespace SecureProxyChatClients.Server.Security;
 
 public sealed partial class ContentFilter(ILogger<ContentFilter> logger)
 {
-    // Sanitize HTML/script injection from LLM output
+    // [Security Warning]
+    // Regex-based HTML sanitization is sufficient for this reference sample but can be brittle.
+    // For high-security production environments, consider using a dedicated library like HtmlSanitizer.
     [GeneratedRegex(@"<script[^>]*>.*?</script>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex ScriptTagRegex();
 
     [GeneratedRegex(@"<iframe[^>]*>.*?</iframe>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex IframeTagRegex();
+
+    [GeneratedRegex(@"<object[^>]*>.*?</object>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex ObjectTagRegex();
+
+    [GeneratedRegex(@"<embed[^>]*\/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex EmbedTagRegex();
 
     [GeneratedRegex(@"on\w+\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase)]
     private static partial Regex EventHandlerQuotedRegex();
@@ -30,6 +38,8 @@ public sealed partial class ContentFilter(ILogger<ContentFilter> logger)
             string sanitized = m.Content;
             sanitized = ScriptTagRegex().Replace(sanitized, "[content removed]");
             sanitized = IframeTagRegex().Replace(sanitized, "[content removed]");
+            sanitized = ObjectTagRegex().Replace(sanitized, "[content removed]");
+            sanitized = EmbedTagRegex().Replace(sanitized, "[content removed]");
             sanitized = EventHandlerQuotedRegex().Replace(sanitized, "");
             sanitized = EventHandlerUnquotedRegex().Replace(sanitized, "");
             sanitized = JavascriptProtocolRegex().Replace(sanitized, "");

@@ -237,14 +237,14 @@ public class ChatTests : PageTest, IAsyncLifetime
         await Page.GotoAsync(_app.GetEndpoint("server") + "/Identity/Account/Register");
 
         await Page.GetByLabel("Email").FillAsync("newuser@test.com");
-        await Page.GetByLabel("Password", new() { Exact = true }).FillAsync("Test123!");
-        await Page.GetByLabel("Confirm Password").FillAsync("Test123!");
+        await Page.GetByLabel("Password", new() { Exact = true }).FillAsync("TestPassword1!");
+        await Page.GetByLabel("Confirm Password").FillAsync("TestPassword1!");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Register" }).ClickAsync();
 
         // Navigate to WASM app, log in via REST API (bearer token)
         await Page.GotoAsync(_app.GetEndpoint("client-web") + "/login");
         await Page.GetByLabel("Email").FillAsync("newuser@test.com");
-        await Page.GetByLabel("Password").FillAsync("Test123!");
+        await Page.GetByLabel("Password").FillAsync("TestPassword1!");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Login" }).ClickAsync();
 
         await Page.GetByRole(AriaRole.Textbox, new() { Name = "message" })
@@ -284,7 +284,7 @@ public class ChatEndpointTests : IAsyncLifetime
         _client = _app.CreateHttpClient("server");
 
         // Authenticate with seeded test user
-        var loginResponse = await _client.PostAsJsonAsync("/login", new { email = "test@test.com", password = "Test123!" });
+        var loginResponse = await _client.PostAsJsonAsync("/login", new { email = "test@test.com", password = "TestPassword1!" });
         var token = await loginResponse.Content.ReadFromJsonAsync<TokenResponse>();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token!.AccessToken);
     }

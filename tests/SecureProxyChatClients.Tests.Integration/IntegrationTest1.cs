@@ -19,7 +19,7 @@ public class ChatEndpointTests : IAsyncLifetime
         var cts = new CancellationTokenSource(DefaultTimeout);
         var appHost = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.SecureProxyChatClients_AppHost>(
-                ["--AI:Provider=Fake", "--SeedUser:Password=Test123!"], cts.Token);
+                ["--AI:Provider=Fake"], cts.Token);
 
         _app = await appHost.BuildAsync(cts.Token);
         await _app.StartAsync(cts.Token);
@@ -31,11 +31,26 @@ public class ChatEndpointTests : IAsyncLifetime
         _unauthClient = _app.CreateHttpClient("server");
         _authedClient = _app.CreateHttpClient("server");
 
-        // Authenticate via Bearer token (API endpoints are Bearer-only)
+        // Register a unique test user and authenticate via Bearer token
+        string testEmail = $"chattest-{Guid.NewGuid():N}@test.com";
+        const string testPassword = "ChatTestPassword1!";
+
+        var registerResponse = await _authedClient.PostAsJsonAsync("/register", new
+        {
+            email = testEmail,
+            password = testPassword
+        }, cts.Token);
+
+        if (!registerResponse.IsSuccessStatusCode)
+        {
+            string body = await registerResponse.Content.ReadAsStringAsync(cts.Token);
+            throw new InvalidOperationException($"Register failed: {registerResponse.StatusCode} {body}");
+        }
+
         var loginResponse = await _authedClient.PostAsJsonAsync("/login", new
         {
-            email = "test@test.com",
-            password = "Test123!"
+            email = testEmail,
+            password = testPassword
         }, cts.Token);
 
         if (!loginResponse.IsSuccessStatusCode)

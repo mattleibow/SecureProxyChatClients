@@ -54,7 +54,7 @@ A seed user is created automatically in development:
 | Field | Value |
 |-------|-------|
 | Email | `test@test.com` |
-| Password | `Test123!` |
+| Password | `TestPassword1!` |
 
 The seed user is configured in `src/SecureProxyChatClients.Server/appsettings.json` under the `SeedUser` section.
 
@@ -338,7 +338,7 @@ Verify `Client:Origin` matches the exact origin of the client (scheme, host, and
 
 Use this checklist before deploying to a production environment.
 
-- [ ] **Remove or reconfigure the seed user.** Change `SeedUser:Password` to a strong value or remove the seed user service entirely. Never deploy with the default `Test123!` password.
+- [ ] **Remove or reconfigure the seed user.** Change `SeedUser:Password` to a strong value or remove the seed user service entirely. Never deploy with the default `TestPassword1!` password.
 - [ ] **Set `AI:Provider` to `AzureOpenAI`** with proper credentials supplied via environment variables or a secrets manager — not `secrets.json`.
 - [ ] **Use managed identity** for Azure OpenAI authentication instead of API keys where possible.
 - [ ] **Configure `Client:Origin`** to your production frontend domain. Do not use wildcards.

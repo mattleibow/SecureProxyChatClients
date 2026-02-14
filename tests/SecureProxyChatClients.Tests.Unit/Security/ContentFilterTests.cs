@@ -141,4 +141,54 @@ public class ContentFilterTests
 
         Assert.Equal("Test [content removed] end", result.Messages[0].Content);
     }
+
+    [Fact]
+    public void FilterResponse_CatchesSplitScriptTagInConcatenatedText()
+    {
+        // Simulates the stream-split XSS scenario: malicious content split across chunks
+        // Individual chunks may pass filtering, but concatenated text must be re-filtered
+        string chunk1 = "Hello <scr";
+        string chunk2 = "ipt>alert('xss')</scr";
+        string chunk3 = "ipt> world";
+
+        // Filter each chunk individually (as happens during streaming)
+        var filtered1 = _filter.FilterResponse(new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = chunk1 }]
+        }).Messages[0].Content;
+
+        var filtered2 = _filter.FilterResponse(new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = chunk2 }]
+        }).Messages[0].Content;
+
+        var filtered3 = _filter.FilterResponse(new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = chunk3 }]
+        }).Messages[0].Content;
+
+        // Concatenate and apply final filter (as the server now does before persistence)
+        string concatenated = filtered1 + filtered2 + filtered3;
+        var finalResult = _filter.FilterResponse(new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = concatenated }]
+        });
+
+        // The final filter must catch the reassembled script tag
+        Assert.DoesNotContain("<script>", finalResult.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void FilterResponse_RemovesObjectAndEmbedTags()
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = "<object data='evil.swf'></object><embed src='evil.swf'>" }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.DoesNotContain("<object", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<embed", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
 }

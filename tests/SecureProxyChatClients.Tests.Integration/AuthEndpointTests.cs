@@ -36,14 +36,14 @@ public class AuthEndpointTests : IAsyncLifetime
         var registerResponse = await _client.PostAsJsonAsync("/register", new
         {
             email,
-            password = "StrongPass1!"
+            password = "StrongPassword1!"
         });
         Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
 
         var loginResponse = await _client.PostAsJsonAsync("/login", new
         {
             email,
-            password = "StrongPass1!"
+            password = "StrongPassword1!"
         });
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
 
@@ -57,10 +57,10 @@ public class AuthEndpointTests : IAsyncLifetime
     {
         string email = $"dup-{Guid.NewGuid():N}@test.com";
 
-        var first = await _client.PostAsJsonAsync("/register", new { email, password = "StrongPass1!" });
+        var first = await _client.PostAsJsonAsync("/register", new { email, password = "StrongPassword1!" });
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
 
-        var second = await _client.PostAsJsonAsync("/register", new { email, password = "StrongPass2!" });
+        var second = await _client.PostAsJsonAsync("/register", new { email, password = "StrongPassword2!" });
         Assert.NotEqual(HttpStatusCode.OK, second.StatusCode);
     }
 

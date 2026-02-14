@@ -22,6 +22,9 @@ public sealed class EfConversationStore(AppDbContext db) : IConversationStore
 
     public async Task AppendMessagesAsync(string sessionId, IReadOnlyList<ChatMessageDto> messages, CancellationToken ct = default)
     {
+        // Note: In a high-concurrency production scenario, this read-then-write pattern
+        // could lead to sequence number collisions. Consider using optimistic concurrency
+        // or a database-generated sequence if strict ordering guarantees are required.
         int maxSeq = await db.ConversationMessages
             .Where(m => m.SessionId == sessionId)
             .Select(m => (int?)m.SequenceNumber)

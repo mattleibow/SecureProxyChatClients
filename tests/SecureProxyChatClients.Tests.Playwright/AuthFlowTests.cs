@@ -39,7 +39,7 @@ public class AuthFlowTests(AspirePlaywrightFixture fixture)
             await page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 30_000 });
 
             await page.Locator("[data-testid='login-email']").FillAsync("test@test.com");
-            await page.Locator("[data-testid='login-password']").FillAsync("Test123!");
+            await page.Locator("[data-testid='login-password']").FillAsync("TestPassword1!");
             await page.Locator("[data-testid='login-submit']").ClickAsync();
 
             // Should redirect to /ping
@@ -107,7 +107,7 @@ public class AuthFlowTests(AspirePlaywrightFixture fixture)
             await page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 30_000 });
 
             await page.Locator("[data-testid='login-email']").FillAsync("test@test.com");
-            await page.Locator("[data-testid='login-password']").FillAsync("Test123!");
+            await page.Locator("[data-testid='login-password']").FillAsync("TestPassword1!");
             await page.Locator("[data-testid='login-submit']").ClickAsync();
 
             // Wait for redirect to /ping, then do a full page load to ensure sessionStorage is used
