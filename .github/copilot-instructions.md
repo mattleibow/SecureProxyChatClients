@@ -1,6 +1,6 @@
 # Copilot Instructions — SecureProxyChatClients
 
-> **Last updated**: 2026-02-13
+> **Last updated**: 2026-02-16
 > **HARD RULE**: After each meaningful unit of work, update this file AND the memory-bank files. All learnings go here, not in GitHub Memories.
 
 ## Project Identity
@@ -136,3 +136,12 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-14: Playwright E2E tests with sessionStorage auth: use full page reload (`page.GotoAsync`) not SPA navigation to ensure sessionStorage is read by handler on fresh page load
 - 2026-02-14: Playwright `WaitForFunction` with JavaScript is more reliable than `WaitForSelectorAsync` for checking dynamic state (e.g., button enabled/disabled)
 - 2026-02-13: ChatResponse constructor varies by MEAI version — use `new ChatResponse([message])` (list form) for compatibility
+- 2026-02-15: CORS hardened: restrict to specific methods (GET/POST/OPTIONS) and headers (Content-Type, Authorization, Accept) — don't use AllowAnyMethod/AllowAnyHeader
+- 2026-02-15: ChatEndpoints security: add null checks for userId, try/catch around tool invocation, tool result size limits (32KB), SSE error handling
+- 2026-02-15: ContentFilter should use source-generated Regex (`[GeneratedRegex]` + `partial class`) for real XSS sanitization — removes script/iframe/event handlers/javascript: protocol
+- 2026-02-15: CopilotCliChatClient needs ILogger as constructor param — use factory pattern in DI: `services.AddSingleton<IChatClient>(sp => new CopilotCliChatClient(sp.GetRequired...))`
+- 2026-02-16: Pgvector.EntityFrameworkCore 0.3 CosineDistance is an EF extension method that throws "FunctionOnClient" if called outside LINQ — use raw SQL with `<=>` operator for cosine distance queries
+- 2026-02-16: Aspire.Hosting.PostgreSQL package version must match Aspire.Hosting.AppHost version (both 9.4.2) — mismatched versions cause TypeLoadException on `get_Pipeline`
+- 2026-02-16: Collection expressions `[]` cannot initialize `IReadOnlySet<string>` — use `new HashSet<string>()` explicitly
+- 2026-02-16: Game engine pattern: server-side tools enforce ALL game mechanics (dice, items, HP, gold, XP, NPCs) — client can't cheat. NPC HiddenSecret stripped before sending to client.
+- 2026-02-16: Achievement system: state-based achievements checked after tool execution; event-based achievements awarded by game events. Use IReadOnlySet for the unlocked check parameter.
