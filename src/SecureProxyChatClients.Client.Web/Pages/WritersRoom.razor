@@ -29,7 +29,7 @@ else
         {
             <div class="mb-3" data-testid="pitch-form">
                 <label class="form-label">Your story pitch:</label>
-                <textarea class="form-control" rows="3" @bind="userPitch"
+                <textarea class="form-control" rows="3" @bind="userPitch" @bind:event="oninput"
                           placeholder="Describe your story idea..."
                           data-testid="pitch-input"></textarea>
                 <button class="btn btn-primary mt-2" @onclick="SubmitPitch"
