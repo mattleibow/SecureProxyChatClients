@@ -103,4 +103,51 @@ public class GameToolsTests
         Assert.NotNull(result.Id);
         Assert.Equal(8, result.Id.Length);
     }
+
+    [Fact]
+    public void GameEvent_DiceCheckResult_RoundtripsViaSerialization()
+    {
+        var diceResult = GameTools.RollCheck("dexterity", 12, "Dodge attack");
+        var gameEvent = new SecureProxyChatClients.Shared.Contracts.GameEvent
+        {
+            Type = "RollCheck",
+            Data = System.Text.Json.JsonSerializer.SerializeToElement(diceResult),
+        };
+
+        // Serialize and deserialize (simulating SSE roundtrip)
+        string json = System.Text.Json.JsonSerializer.Serialize(gameEvent);
+        var deserialized = System.Text.Json.JsonSerializer.Deserialize<SecureProxyChatClients.Shared.Contracts.GameEvent>(
+            json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(deserialized);
+        Assert.Equal("RollCheck", deserialized.Type);
+        Assert.NotNull(deserialized.Data);
+
+        // Verify the Data properties are accessible with PascalCase
+        var data = deserialized.Data.Value;
+        Assert.Equal(diceResult.Roll, data.GetProperty("Roll").GetInt32());
+        Assert.Equal(diceResult.Total, data.GetProperty("Total").GetInt32());
+        Assert.Equal(diceResult.Difficulty, data.GetProperty("Difficulty").GetInt32());
+        Assert.Equal(diceResult.Success, data.GetProperty("Success").GetBoolean());
+    }
+
+    [Fact]
+    public void GameEvent_HealthResult_RoundtripsViaSerialization()
+    {
+        var healthResult = new HealthResult(-15, "Dragon fire");
+        var gameEvent = new SecureProxyChatClients.Shared.Contracts.GameEvent
+        {
+            Type = "ModifyHealth",
+            Data = System.Text.Json.JsonSerializer.SerializeToElement(healthResult),
+        };
+
+        string json = System.Text.Json.JsonSerializer.Serialize(gameEvent);
+        var deserialized = System.Text.Json.JsonSerializer.Deserialize<SecureProxyChatClients.Shared.Contracts.GameEvent>(
+            json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(deserialized);
+        var data = deserialized.Data!.Value;
+        Assert.Equal(-15, data.GetProperty("Amount").GetInt32());
+        Assert.Equal("Dragon fire", data.GetProperty("Source").GetString());
+    }
 }
