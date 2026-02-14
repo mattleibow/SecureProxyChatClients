@@ -14,7 +14,8 @@ public static class SessionEndpoints
             .RequireAuthorization(new AuthorizeAttribute
             {
                 AuthenticationSchemes = IdentityConstants.BearerScheme
-            });
+            })
+            .RequireRateLimiting("chat");
 
         group.MapPost("/", CreateSessionAsync)
             .WithName("CreateSession")

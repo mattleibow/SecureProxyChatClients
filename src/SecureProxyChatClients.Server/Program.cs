@@ -40,15 +40,20 @@ builder.Services.AddIdentityApiEndpoints<IdentityUser>(options =>
     })
     .AddEntityFrameworkStores<AppDbContext>();
 
-// Configure Identity cookies for security
-builder.Services.ConfigureApplicationCookie(options =>
+// Configure Identity to use Bearer token by default and disable cookies
+builder.Services.AddAuthentication(options =>
 {
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.ExpireTimeSpan = TimeSpan.FromHours(2);
-    options.SlidingExpiration = true;
+    options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
+    options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
 });
+// builder.Services.ConfigureApplicationCookie(options =>
+// {
+//     options.Cookie.HttpOnly = true;
+//     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+//     options.Cookie.SameSite = SameSiteMode.Strict;
+//     options.ExpireTimeSpan = TimeSpan.FromHours(2);
+//     options.SlidingExpiration = true;
+// });
 
 builder.Services.AddScoped<SeedDataService>();
 
@@ -131,6 +136,12 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 1_048_576; // 1 MB
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+                               Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
 
 // Ensure database is created and seed data
@@ -156,6 +167,8 @@ app.Use(async (context, next) =>
     headers["X-Frame-Options"] = "DENY";
     headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    headers["Cross-Origin-Embedder-Policy"] = "credentialless";
     headers["Content-Security-Policy"] =
         "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'";
     await next();
@@ -185,6 +198,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 
+app.UseForwardedHeaders();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();

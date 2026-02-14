@@ -5,14 +5,27 @@ namespace SecureProxyChatClients.Server.GameEngine;
 
 public static class GameTools
 {
+    private static readonly HashSet<string> ValidStats = ["strength", "dexterity", "wisdom", "charisma"];
+    private static readonly HashSet<string> ValidItemTypes = ["weapon", "armor", "potion", "key", "misc"];
+    private static readonly HashSet<string> ValidRarities = ["common", "uncommon", "rare", "epic", "legendary"];
+    private static readonly HashSet<string> ValidAttitudes = ["friendly", "neutral", "hostile", "suspicious"];
+    private const int MaxStringLength = 500;
+
+    private static string Clamp(string? value, string fallback, int maxLen = MaxStringLength) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value.Length > maxLen ? value[..maxLen] : value;
+
     [Description("Roll dice for an action check. Returns the result and whether it succeeds against a difficulty.")]
     public static DiceCheckResult RollCheck(
         [Description("The stat being tested: strength, dexterity, wisdom, or charisma")] string stat,
         [Description("Difficulty class (1-20, where 10 is moderate)")] int difficulty,
         [Description("Brief description of what the player is attempting")] string action)
     {
+        stat = Clamp(stat, "strength").ToLowerInvariant();
+        difficulty = Math.Clamp(difficulty, 1, 30);
+        action = Clamp(action, "an action");
+
         int d20 = Random.Shared.Next(1, 21);
-        int modifier = stat.ToLowerInvariant() switch
+        int modifier = stat switch
         {
             "strength" => 2,
             "dexterity" => 2,
@@ -43,7 +56,7 @@ public static class GameTools
         [Description("Name of the new location")] string location,
         [Description("Brief atmospheric description of arriving")] string description)
     {
-        return new LocationResult(location, description);
+        return new LocationResult(Clamp(location, "Unknown"), Clamp(description, "You arrive."));
     }
 
     [Description("Add an item to the player's inventory.")]
@@ -54,14 +67,19 @@ public static class GameTools
         [Description("Emoji icon for the item")] string emoji,
         [Description("Rarity: common, uncommon, rare, epic, or legendary")] string rarity = "common")
     {
-        return new ItemResult(name, description, type, emoji, rarity, Added: true);
+        type = Clamp(type, "misc").ToLowerInvariant();
+        if (!ValidItemTypes.Contains(type)) type = "misc";
+        rarity = Clamp(rarity, "common").ToLowerInvariant();
+        if (!ValidRarities.Contains(rarity)) rarity = "common";
+
+        return new ItemResult(Clamp(name, "Item"), Clamp(description, ""), type, Clamp(emoji, "📦", 10), rarity, Added: true);
     }
 
     [Description("Remove an item from the player's inventory.")]
     public static ItemResult TakeItem(
         [Description("Name of the item to remove")] string name)
     {
-        return new ItemResult(name, "", "", "", "common", Added: false);
+        return new ItemResult(Clamp(name, "Item"), "", "", "", "common", Added: false);
     }
 
     [Description("Deal damage to the player or heal them.")]
@@ -69,7 +87,8 @@ public static class GameTools
         [Description("Amount to change. Positive = heal, negative = damage")] int amount,
         [Description("Source of the damage or healing")] string source)
     {
-        return new HealthResult(amount, source);
+        amount = Math.Clamp(amount, -200, 200);
+        return new HealthResult(amount, Clamp(source, "unknown"));
     }
 
     [Description("Award gold to the player.")]
@@ -77,7 +96,8 @@ public static class GameTools
         [Description("Amount to change. Positive = gain, negative = spend")] int amount,
         [Description("Reason for the change")] string reason)
     {
-        return new GoldResult(amount, reason);
+        amount = Math.Clamp(amount, -1000, 1000);
+        return new GoldResult(amount, Clamp(reason, "unknown"));
     }
 
     [Description("Award experience points to the player.")]
@@ -85,7 +105,8 @@ public static class GameTools
         [Description("XP amount to award")] int amount,
         [Description("What the XP is for")] string reason)
     {
-        return new ExperienceResult(amount, reason);
+        amount = Math.Clamp(amount, 0, 5000);
+        return new ExperienceResult(amount, Clamp(reason, "unknown"));
     }
 
     [Description("Generate an NPC with visible traits and hidden secrets the player doesn't know yet.")]
@@ -96,12 +117,15 @@ public static class GameTools
         [Description("Hidden secret the player doesn't know")] string hiddenSecret,
         [Description("NPC's attitude toward the player: friendly, neutral, hostile, or suspicious")] string attitude)
     {
+        attitude = Clamp(attitude, "neutral").ToLowerInvariant();
+        if (!ValidAttitudes.Contains(attitude)) attitude = "neutral";
+
         return new NpcResult(
             Id: Guid.NewGuid().ToString("N")[..8],
-            Name: name,
-            Role: role,
-            Description: description,
-            HiddenSecret: hiddenSecret,
+            Name: Clamp(name, "Stranger"),
+            Role: Clamp(role, "unknown"),
+            Description: Clamp(description, "A mysterious figure."),
+            HiddenSecret: Clamp(hiddenSecret, "None"),
             Attitude: attitude
         );
     }

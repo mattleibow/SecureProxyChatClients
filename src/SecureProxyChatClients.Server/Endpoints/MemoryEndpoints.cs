@@ -15,7 +15,8 @@ public static class MemoryEndpoints
             .RequireAuthorization(new AuthorizeAttribute
             {
                 AuthenticationSchemes = IdentityConstants.BearerScheme
-            });
+            })
+            .RequireRateLimiting("chat");
 
         group.MapGet("/recent", GetRecentMemoriesAsync)
             .WithName("GetRecentMemories")

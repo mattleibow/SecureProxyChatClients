@@ -150,4 +150,91 @@ public class GameToolsTests
         Assert.Equal(-15, data.GetProperty("Amount").GetInt32());
         Assert.Equal("Dragon fire", data.GetProperty("Source").GetString());
     }
+
+    // --- Input validation tests for game tools ---
+
+    [Fact]
+    public void RollCheck_ClampsDifficultyToValidRange()
+    {
+        var low = GameTools.RollCheck("strength", -5, "test");
+        var high = GameTools.RollCheck("strength", 100, "test");
+        Assert.Equal(1, low.Difficulty);
+        Assert.Equal(30, high.Difficulty);
+    }
+
+    [Fact]
+    public void RollCheck_HandlesNullStat()
+    {
+        var result = GameTools.RollCheck(null!, 10, "test");
+        Assert.Equal("strength", result.Stat);
+        Assert.Equal(2, result.Modifier);
+    }
+
+    [Fact]
+    public void RollCheck_TruncatesLongAction()
+    {
+        string longAction = new('x', 1000);
+        var result = GameTools.RollCheck("strength", 10, longAction);
+        Assert.Equal(500, result.Action.Length);
+    }
+
+    [Fact]
+    public void GiveItem_NormalizesInvalidType()
+    {
+        var result = GameTools.GiveItem("Thing", "desc", "invalid_type", "📦");
+        Assert.Equal("misc", result.Type);
+    }
+
+    [Fact]
+    public void GiveItem_NormalizesInvalidRarity()
+    {
+        var result = GameTools.GiveItem("Thing", "desc", "weapon", "⚔️", "mythic");
+        Assert.Equal("common", result.Rarity);
+    }
+
+    [Fact]
+    public void ModifyHealth_ClampsExtremeValues()
+    {
+        var tooLow = GameTools.ModifyHealth(-9999, "nuke");
+        var tooHigh = GameTools.ModifyHealth(9999, "mega heal");
+        Assert.Equal(-200, tooLow.Amount);
+        Assert.Equal(200, tooHigh.Amount);
+    }
+
+    [Fact]
+    public void ModifyGold_ClampsExtremeValues()
+    {
+        var tooLow = GameTools.ModifyGold(-9999, "scam");
+        var tooHigh = GameTools.ModifyGold(99999, "infinite money");
+        Assert.Equal(-1000, tooLow.Amount);
+        Assert.Equal(1000, tooHigh.Amount);
+    }
+
+    [Fact]
+    public void AwardExperience_ClampsNegativeToZero()
+    {
+        var result = GameTools.AwardExperience(-100, "negative xp");
+        Assert.Equal(0, result.Amount);
+    }
+
+    [Fact]
+    public void AwardExperience_ClampsAboveMax()
+    {
+        var result = GameTools.AwardExperience(99999, "too much xp");
+        Assert.Equal(5000, result.Amount);
+    }
+
+    [Fact]
+    public void GenerateNpc_NormalizesInvalidAttitude()
+    {
+        var result = GameTools.GenerateNpc("Bob", "Guard", "Big guy", "None", "angry");
+        Assert.Equal("neutral", result.Attitude);
+    }
+
+    [Fact]
+    public void GiveItem_TruncatesLongEmoji()
+    {
+        var result = GameTools.GiveItem("Sword", "desc", "weapon", string.Concat(Enumerable.Repeat("x", 20)));
+        Assert.True(result.Emoji.Length <= 10);
+    }
 }
