@@ -403,18 +403,102 @@ public static class PlayEndpoints
         httpContext.Response.Headers.CacheControl = "no-cache";
         httpContext.Response.Headers.Connection = "keep-alive";
 
+        var gameToolRegistry = new GameToolRegistry();
+        ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
+        List<GameEvent> gameEvents = [];
+
+        // Tool execution loop (same as non-streaming, but we stream the final text)
         var fullText = new System.Text.StringBuilder();
         try
         {
-            await foreach (var update in chatClient.GetStreamingResponseAsync(
-                chatMessages, cancellationToken: cancellationToken))
+            for (int round = 0; round < MaxToolCallRounds; round++)
             {
-                if (update.Text is { Length: > 0 } text)
+                var aiResponse = await chatClient.GetResponseAsync(chatMessages, chatOptions, cancellationToken);
+
+                var functionCalls = aiResponse.Messages
+                    .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
+                    .ToList();
+
+                if (functionCalls.Count == 0)
                 {
-                    fullText.Append(text);
-                    string data = JsonSerializer.Serialize(new { text });
-                    await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
-                    await httpContext.Response.Body.FlushAsync(cancellationToken);
+                    // Check achievements
+                    var newAchievements = Achievements.CheckAchievements(playerState, playerState.UnlockedAchievements);
+                    foreach (var ach in newAchievements)
+                    {
+                        playerState.UnlockedAchievements.Add(ach.Id);
+                        gameEvents.Add(new GameEvent
+                        {
+                            Type = "Achievement",
+                            Data = JsonSerializer.SerializeToElement(new { ach.Id, ach.Title, ach.Emoji, ach.Description }),
+                        });
+                    }
+
+                    // Stream the final text response
+                    string? responseText = aiResponse.Text;
+                    if (responseText is { Length: > 0 })
+                    {
+                        fullText.Append(responseText);
+                        // Stream in chunks for realistic effect
+                        int chunkSize = 12;
+                        for (int i = 0; i < responseText.Length; i += chunkSize)
+                        {
+                            string chunk = responseText[i..Math.Min(i + chunkSize, responseText.Length)];
+                            string data = JsonSerializer.Serialize(new { text = chunk });
+                            await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
+                            await httpContext.Response.Body.FlushAsync(cancellationToken);
+                        }
+                    }
+
+                    // Save state
+                    await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+                    break;
+                }
+
+                chatMessages.AddRange(aiResponse.Messages);
+
+                foreach (var fc in functionCalls)
+                {
+                    AIFunction? tool = gameToolRegistry.GetTool(fc.Name);
+                    if (tool is null) continue;
+
+                    try
+                    {
+                        var args = fc.Arguments is { Count: > 0 }
+                            ? new AIFunctionArguments(fc.Arguments!)
+                            : null;
+                        object? result = await tool.InvokeAsync(args, cancellationToken);
+
+                        object? clientResult = GameToolRegistry.ApplyToolResult(result, playerState);
+
+                        var gameEvent = new GameEvent
+                        {
+                            Type = fc.Name,
+                            Data = JsonSerializer.SerializeToElement(clientResult),
+                        };
+                        gameEvents.Add(gameEvent);
+
+                        // Send tool result as SSE event in real-time
+                        string toolEventData = JsonSerializer.Serialize(gameEvent);
+                        await httpContext.Response.WriteAsync($"event: tool-result\ndata: {toolEventData}\n\n", cancellationToken);
+                        await httpContext.Response.Body.FlushAsync(cancellationToken);
+
+                        string resultJson = JsonSerializer.Serialize(result);
+                        if (resultJson.Length > MaxToolResultLength)
+                            resultJson = resultJson[..MaxToolResultLength];
+
+                        chatMessages.Add(new ChatMessage(ChatRole.Tool,
+                            [new FunctionResultContent(fc.CallId, resultJson)]));
+
+                        logger.LogInformation("Game tool {Tool} executed for player {PlayerId}", fc.Name, userId);
+
+                        await StoreGameEventAsMemoryAsync(memoryService, userId, sessionId, fc.Name, result, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Game tool {Tool} failed", fc.Name);
+                        chatMessages.Add(new ChatMessage(ChatRole.Tool,
+                            [new FunctionResultContent(fc.CallId, "Tool execution failed")]));
+                    }
                 }
             }
         }

@@ -87,7 +87,35 @@ else if (playerState is null)
 else if (playerState is not null)
 {
     <!-- Game UI -->
-    <div class="d-flex gap-2" style="max-width: 100%; overflow: hidden;" data-testid="play-container">
+    <div class="d-flex gap-2 @playContainerClass" style="max-width: 100%; overflow: hidden; position: relative;" data-testid="play-container">
+
+        <!-- Dice Roll Overlay -->
+        @if (activeDiceRoll is not null)
+        {
+            <div class="dice-overlay" data-testid="dice-overlay">
+                <div class="dice-card @activeDiceRoll.ResultClass">
+                    <div class="dice-icon">🎲</div>
+                    <div class="dice-roll-value">@activeDiceRoll.Roll</div>
+                    <div class="dice-details">+@(activeDiceRoll.Total - activeDiceRoll.Roll) = @activeDiceRoll.Total vs DC @activeDiceRoll.DC</div>
+                    <div class="dice-result">@activeDiceRoll.ResultText</div>
+                </div>
+            </div>
+        }
+
+        <!-- Loot Card Overlay -->
+        @if (activeLootCard is not null)
+        {
+            <div class="loot-overlay" data-testid="loot-overlay">
+                <div class="loot-card">
+                    <div class="loot-emoji">@activeLootCard.Emoji</div>
+                    <div class="loot-name">@activeLootCard.Name</div>
+                    @if (!string.IsNullOrEmpty(activeLootCard.Description))
+                    {
+                        <div class="loot-description">@activeLootCard.Description</div>
+                    }
+                </div>
+            </div>
+        }
         <!-- Main game area -->
         <div class="flex-grow-1" style="min-width: 0;">
             <!-- Player stats bar -->
@@ -275,6 +303,11 @@ else
     // Combat state
     private EncounterData? activeCombat;
     private int combatTurn;
+
+    // Visual effects
+    private DiceRollDisplay? activeDiceRoll;
+    private LootCardDisplay? activeLootCard;
+    private string playContainerClass = "";
 
     // Character creation
     private string characterName = string.Empty;
@@ -575,6 +608,16 @@ else
                             streamingContent += textElement.GetString();
                         break;
 
+                    case "tool-result":
+                        var toolEvent = JsonSerializer.Deserialize<GameEvent>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if (toolEvent is not null)
+                        {
+                            gameEvents.Add(toolEvent);
+                            // Trigger visual effects for specific tools
+                            HandleToolEffect(toolEvent);
+                        }
+                        break;
+
                     case "state":
                         var state = JsonSerializer.Deserialize<PlayerStateDto>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                         if (state is not null)
@@ -600,6 +643,9 @@ else
         isStreaming = false;
         activeCombat = null;
         combatTurn = 0;
+        activeDiceRoll = null;
+        activeLootCard = null;
+        playContainerClass = "";
         storyMessages.Clear();
         gameEvents.Clear();
         sessionId = null;
@@ -671,9 +717,74 @@ else
     {
         try
         {
-            await Task.Yield(); // Let Blazor complete rendering
+            await Task.Yield();
             await JS.InvokeVoidAsync("eval", "(() => { const el = document.getElementById('story-area'); if(el) el.scrollTop = el.scrollHeight; })()");
         }
         catch { /* JS interop may fail during dispose */ }
     }
+
+    private void HandleToolEffect(GameEvent evt)
+    {
+        try
+        {
+            switch (evt.Type)
+            {
+                case "RollCheck" when evt.Data is not null:
+                    int roll = evt.Data.Value.GetProperty("Roll").GetInt32();
+                    int total = evt.Data.Value.GetProperty("Total").GetInt32();
+                    int dc = evt.Data.Value.GetProperty("Difficulty").GetInt32();
+                    bool success = evt.Data.Value.GetProperty("Success").GetBoolean();
+                    bool crit = evt.Data.Value.TryGetProperty("CriticalSuccess", out var cs) && cs.GetBoolean();
+                    bool critFail = evt.Data.Value.TryGetProperty("CriticalFailure", out var cf) && cf.GetBoolean();
+                    activeDiceRoll = new DiceRollDisplay(roll, total, dc, success, crit, critFail);
+                    _ = DismissDiceRollAfterDelay();
+                    break;
+
+                case "ModifyHealth" when evt.Data is not null:
+                    int amount = evt.Data.Value.GetProperty("Amount").GetInt32();
+                    playContainerClass = amount < 0 ? "shake-damage" : "glow-heal";
+                    _ = ClearEffectAfterDelay();
+                    break;
+
+                case "GiveItem" when evt.Data is not null:
+                    string itemName = evt.Data.Value.GetProperty("Name").GetString() ?? "Item";
+                    string itemEmoji = evt.Data.Value.TryGetProperty("Emoji", out var em) ? em.GetString() ?? "📦" : "📦";
+                    string itemDesc = evt.Data.Value.TryGetProperty("Description", out var desc) ? desc.GetString() ?? "" : "";
+                    activeLootCard = new LootCardDisplay(itemName, itemEmoji, itemDesc);
+                    _ = DismissLootAfterDelay();
+                    break;
+            }
+            StateHasChanged();
+        }
+        catch { /* Non-critical visual effects */ }
+    }
+
+    private async Task DismissDiceRollAfterDelay()
+    {
+        await Task.Delay(3500);
+        activeDiceRoll = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissLootAfterDelay()
+    {
+        await Task.Delay(3000);
+        activeLootCard = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearEffectAfterDelay()
+    {
+        await Task.Delay(600);
+        playContainerClass = "";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private sealed record DiceRollDisplay(int Roll, int Total, int DC, bool Success, bool Crit, bool CritFail)
+    {
+        public string ResultText => Crit ? "CRITICAL HIT!" : CritFail ? "CRITICAL FAIL!" : Success ? "SUCCESS" : "FAILURE";
+        public string ResultClass => Crit ? "crit-success" : CritFail ? "crit-fail" : Success ? "roll-success" : "roll-failure";
+    }
+
+    private sealed record LootCardDisplay(string Name, string Emoji, string Description);
 }

@@ -794,3 +794,162 @@ main {
     min-width: 50px;
     text-align: right;
 }
+
+/* ===== Dice Roll Overlay ===== */
+.dice-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+    pointer-events: none;
+}
+
+.dice-card {
+    text-align: center;
+    padding: 2rem 3rem;
+    border-radius: 16px;
+    border: 2px solid var(--lore-gold);
+    background: var(--lore-bg-card);
+    box-shadow: 0 0 40px rgba(218, 165, 32, 0.3);
+    animation: diceAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dice-card.roll-success { border-color: #4ade80; box-shadow: 0 0 40px rgba(74, 222, 128, 0.3); }
+.dice-card.roll-failure { border-color: var(--lore-crimson); box-shadow: 0 0 40px rgba(220, 38, 38, 0.3); }
+.dice-card.crit-success { border-color: var(--lore-gold-bright); box-shadow: 0 0 60px rgba(255, 215, 0, 0.5); }
+.dice-card.crit-fail { border-color: #7f1d1d; box-shadow: 0 0 60px rgba(127, 29, 29, 0.5); }
+
+.dice-icon {
+    font-size: 3rem;
+    animation: diceBounce 0.6s ease-out;
+    margin-bottom: 0.5rem;
+}
+
+.dice-roll-value {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--lore-gold-bright);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(218, 165, 32, 0.5);
+}
+
+.crit-success .dice-roll-value { color: #ffd700; text-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+.crit-fail .dice-roll-value { color: var(--lore-crimson); text-shadow: 0 0 30px rgba(220, 38, 38, 0.8); }
+
+.dice-details {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--lore-text-dim);
+    margin: 0.5rem 0;
+}
+
+.dice-result {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-top: 0.5rem;
+}
+
+.roll-success .dice-result { color: #4ade80; }
+.roll-failure .dice-result { color: var(--lore-crimson); }
+.crit-success .dice-result { color: #ffd700; animation: glowPulse 0.5s ease-in-out 3; }
+.crit-fail .dice-result { color: #dc2626; animation: shake 0.3s ease-in-out 2; }
+
+@keyframes diceAppear {
+    0% { transform: scale(0.3) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ===== Damage/Heal Screen Effects ===== */
+.shake-damage {
+    animation: shake 0.4s ease-in-out;
+}
+
+.shake-damage::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, transparent 40%, rgba(220, 38, 38, 0.15) 100%);
+    pointer-events: none;
+    animation: flashFade 0.4s ease-out forwards;
+    z-index: 999;
+}
+
+.glow-heal::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, transparent 40%, rgba(74, 222, 128, 0.1) 100%);
+    pointer-events: none;
+    animation: flashFade 0.6s ease-out forwards;
+    z-index: 999;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px) translateY(2px); }
+    40% { transform: translateX(5px) translateY(-2px); }
+    60% { transform: translateX(-4px) translateY(1px); }
+    80% { transform: translateX(3px); }
+}
+
+@keyframes flashFade {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ===== Loot Card Overlay ===== */
+.loot-overlay {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    pointer-events: none;
+    animation: lootAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.loot-card {
+    text-align: center;
+    padding: 1.5rem 2.5rem;
+    border-radius: 12px;
+    border: 2px solid var(--lore-gold);
+    background: linear-gradient(135deg, var(--lore-bg-card) 0%, rgba(218, 165, 32, 0.1) 100%);
+    box-shadow: 0 0 30px rgba(218, 165, 32, 0.4), 0 8px 32px rgba(0, 0, 0, 0.5);
+    min-width: 200px;
+}
+
+.loot-emoji {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    animation: diceBounce 0.6s ease-out;
+}
+
+.loot-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--lore-gold-bright);
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(218, 165, 32, 0.3);
+}
+
+.loot-description {
+    font-size: 0.8rem;
+    color: var(--lore-text-dim);
+    margin-top: 0.3rem;
+    font-style: italic;
+}
+
+@keyframes lootAppear {
+    0% { transform: translateX(-50%) scale(0) translateY(50px); opacity: 0; }
+    60% { transform: translateX(-50%) scale(1.1) translateY(-10px); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
+}
