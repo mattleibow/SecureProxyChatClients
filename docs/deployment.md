@@ -352,7 +352,7 @@ Use this checklist before deploying to a production environment.
 - [ ] **Enable OTLP export.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` to send metrics and traces to Azure Monitor, Prometheus, or your observability platform.
 - [ ] **Consider Microsoft Entra ID** for enterprise authentication instead of the built-in Identity system.
 - [ ] **Restrict Azure OpenAI network access** with private endpoints and virtual network integration.
-- [ ] **Review password policy.** The default requires 8+ characters with at least one digit. Strengthen as needed for your security posture.
+- [ ] **Review password policy.** The default requires 12+ characters with digit, uppercase, lowercase, and special character. Adjust as needed for your security posture.
 - [ ] **Store secrets securely.** Use Azure Key Vault, GitHub Actions secrets, or your platform's secret management — never commit credentials to source control.
 
 ---

@@ -80,7 +80,7 @@ Blazor WASM (Client)                  ASP.NET Core (Server / BFF)
 
 3. **Login** — Use the seeded test user:
    - **Email**: `test@test.com`
-   - **Password**: `Test123!`
+   - **Password**: `TestPassword1!`
 
 4. **Try it out**:
    - **Play** → Create a character and explore an AI-driven RPG world
