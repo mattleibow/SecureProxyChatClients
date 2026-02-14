@@ -25,8 +25,7 @@ All test projects use **xUnit** as the test framework. There are no NUnit or MST
 ### Unit tests
 
 ```bash
-dotnet build --configuration Release
-dotnet test tests/SecureProxyChatClients.Tests.Unit/ --no-build --configuration Release --verbosity normal
+dotnet test tests/SecureProxyChatClients.Tests.Unit/ --configuration Release --verbosity normal
 ```
 
 ### Integration tests
@@ -34,8 +33,7 @@ dotnet test tests/SecureProxyChatClients.Tests.Unit/ --no-build --configuration 
 Integration tests require the Fake AI provider. They spin up the full Aspire distributed application:
 
 ```bash
-dotnet build --configuration Release
-dotnet test tests/SecureProxyChatClients.Tests.Integration/ --no-build --configuration Release --verbosity normal
+dotnet test tests/SecureProxyChatClients.Tests.Integration/ --configuration Release --verbosity normal
 ```
 
 Set the environment variable to use the Fake provider:
@@ -55,13 +53,12 @@ dotnet test tests/SecureProxyChatClients.Tests.Playwright/ --configuration Relea
 ```
 
 > [!NOTE]
-> Playwright tests use `dotnet run` internally to start the server (port 5167) and client (port 5053). Do not use `--no-build` — the fixture needs to build and run the projects.
+> Playwright tests use `dotnet run` internally to start the server (port 5167) and client (port 5053). The fixture builds and runs the projects.
 
 ### All tests
 
 ```bash
-dotnet build --configuration Release
-dotnet test --no-build --configuration Release --verbosity normal
+dotnet test --configuration Release --verbosity normal
 ```
 
 ## Unit tests
@@ -417,7 +414,7 @@ jobs:
       - name: Run unit tests
         run: >
           dotnet test tests/SecureProxyChatClients.Tests.Unit/
-          --no-build --configuration Release
+          --configuration Release
           --verbosity normal
           --logger "trx;LogFileName=unit-tests.trx"
 
@@ -425,7 +422,7 @@ jobs:
         run: >
           dotnet dev-certs https --trust 2>/dev/null || true &&
           dotnet test tests/SecureProxyChatClients.Tests.Integration/
-          --no-build --configuration Release
+          --configuration Release
           --verbosity normal
           --logger "trx;LogFileName=integration-tests.trx"
         env:
@@ -442,7 +439,7 @@ jobs:
 ```
 
 Key points:
-- **Build before test** — the workflow builds once in Release mode, then both test steps use `--no-build`
+- **Always build during test** — `dotnet test` builds implicitly; never use `--no-build`
 - **Fake AI provider** — integration tests set `AI__Provider=Fake` as an environment variable
 - **Integration tests use `continue-on-error`** — they may fail due to infrastructure constraints in CI
 - **Test results as artifacts** — TRX files are uploaded for every run, even on failure

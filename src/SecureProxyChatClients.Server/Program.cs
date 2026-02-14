@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -216,7 +217,7 @@ app.MapGet("/api/ping", (HttpContext context) =>
         user = context.User.Identity?.Name,
         authenticated = true
     });
-}).RequireAuthorization()
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = IdentityConstants.BearerScheme })
   .WithName("Ping")
   .WithSummary("Health check for authenticated users")
   .Produces(StatusCodes.Status200OK)

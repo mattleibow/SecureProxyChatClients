@@ -25,10 +25,10 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Run unit tests
-        run: dotnet test tests/SecureProxyChatClients.Tests.Unit/ --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=unit-tests.trx"
+        run: dotnet test tests/SecureProxyChatClients.Tests.Unit/ --configuration Release --verbosity normal --logger "trx;LogFileName=unit-tests.trx"
 
       - name: Run integration tests
-        run: dotnet dev-certs https --trust 2>/dev/null || true && dotnet test tests/SecureProxyChatClients.Tests.Integration/ --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=integration-tests.trx"
+        run: dotnet dev-certs https --trust 2>/dev/null || true && dotnet test tests/SecureProxyChatClients.Tests.Integration/ --configuration Release --verbosity normal --logger "trx;LogFileName=integration-tests.trx"
         env:
           AI__Provider: Fake
           DOTNET_ASPIRE_ALLOW_UNSECURED_TRANSPORT: "true"

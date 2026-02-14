@@ -72,11 +72,21 @@ public static class MemoryEndpoints
         if (!isValid)
             return Results.BadRequest(new { error = error ?? "Invalid content." });
 
+        // Validate metadata fields against injection
+        string memoryType = request.MemoryType ?? "event";
+        string sessionId = request.SessionId ?? "global";
+
+        // Only allow alphanumeric + hyphens for metadata fields
+        if (memoryType.Length > 50 || !System.Text.RegularExpressions.Regex.IsMatch(memoryType, @"^[a-zA-Z0-9_-]+$"))
+            return Results.BadRequest(new { error = "Invalid memory type." });
+        if (sessionId.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(sessionId, @"^[a-zA-Z0-9_-]+$"))
+            return Results.BadRequest(new { error = "Invalid session ID." });
+
         await memoryService.StoreMemoryAsync(
             userId,
-            request.SessionId ?? "global",
+            sessionId,
             request.Content,
-            request.MemoryType ?? "event",
+            memoryType,
             ct: ct);
 
         return Results.Ok(new { stored = true });

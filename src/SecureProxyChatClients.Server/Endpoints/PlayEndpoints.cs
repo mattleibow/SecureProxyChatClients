@@ -224,6 +224,7 @@ public static class PlayEndpoints
         [FromBody] ChatRequest request,
         IChatClient chatClient,
         InputValidator inputValidator,
+        ContentFilter contentFilter,
         IGameStateStore gameStateStore,
         IConversationStore conversationStore,
         IStoryMemoryService memoryService,
@@ -324,13 +325,16 @@ public static class PlayEndpoints
                     .Select(m => new ChatMessageDto { Role = "assistant", Content = m.Text })
                     .ToList();
 
+                // Filter AI output for XSS/injection
+                var filtered = contentFilter.FilterResponse(new Shared.Contracts.ChatResponse { Messages = responseMessages });
+
                 // Persist
-                if (responseMessages.Count > 0)
-                    await conversationStore.AppendMessagesAsync(sessionId, responseMessages, cancellationToken);
+                if (filtered.Messages.Count > 0)
+                    await conversationStore.AppendMessagesAsync(sessionId, filtered.Messages, cancellationToken);
 
                 return Results.Ok(new PlayResponse
                 {
-                    Messages = responseMessages,
+                    Messages = filtered.Messages.ToList(),
                     SessionId = sessionId,
                     PlayerState = playerState,
                     GameEvents = gameEvents,
@@ -404,6 +408,7 @@ public static class PlayEndpoints
         [FromBody] ChatRequest request,
         IChatClient chatClient,
         InputValidator inputValidator,
+        ContentFilter contentFilter,
         IGameStateStore gameStateStore,
         IConversationStore conversationStore,
         IStoryMemoryService memoryService,
@@ -510,6 +515,13 @@ public static class PlayEndpoints
                     string? responseText = aiResponse.Text;
                     if (responseText is { Length: > 0 })
                     {
+                        // Filter AI output for XSS/injection before streaming
+                        var filteredChunk = contentFilter.FilterResponse(new Shared.Contracts.ChatResponse
+                        {
+                            Messages = [new ChatMessageDto { Role = "assistant", Content = responseText }]
+                        });
+                        responseText = filteredChunk.Messages[0].Content ?? responseText;
+
                         fullText.Append(responseText);
                         // Stream in chunks for realistic effect
                         int chunkSize = 12;
@@ -673,6 +685,7 @@ public static class PlayEndpoints
         [FromBody] OracleRequest request,
         IChatClient chatClient,
         InputValidator inputValidator,
+        ContentFilter contentFilter,
         IGameStateStore gameStateStore,
         IStoryMemoryService memoryService,
         CancellationToken ct)
@@ -711,6 +724,13 @@ public static class PlayEndpoints
 
         var response = await chatClient.GetResponseAsync(messages, cancellationToken: ct);
         string oracleText = response.Messages.LastOrDefault(m => m.Text is { Length: > 0 })?.Text ?? "The Oracle is silent...";
+
+        // Filter AI output for XSS/injection
+        var filteredResponse = contentFilter.FilterResponse(new Shared.Contracts.ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = oracleText }]
+        });
+        oracleText = filteredResponse.Messages[0].Content ?? oracleText;
 
         // Store the oracle consultation as a memory
         await memoryService.StoreMemoryAsync(userId, "oracle", $"Consulted the Oracle about: {request.Question}", "lore", ct: ct);
