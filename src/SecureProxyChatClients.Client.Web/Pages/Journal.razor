@@ -1,0 +1,103 @@
+@page "/journal"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="lore-page">
+    <div class="lore-card p-4 mb-4">
+        <h2 class="lore-heading">📜 Lore Journal</h2>
+        <p class="text-muted">Your past adventures and discoveries, recalled from the Lorekeeper's archives.</p>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Consulting the Lorekeeper...</p>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+    else if (_memories.Count == 0)
+    {
+        <div class="lore-card p-4 text-center">
+            <p class="mb-0">No memories recorded yet. Begin your adventure in <a href="/play" class="text-warning">Play Mode</a>!</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var memory in _memories)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="lore-card p-3 h-100">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="me-2 fs-4">@GetMemoryIcon(memory.MemoryType)</span>
+                            <span class="badge @GetMemoryBadgeClass(memory.MemoryType)">@memory.MemoryType</span>
+                            <small class="text-muted ms-auto">@memory.CreatedAt.ToString("MMM d, HH:mm")</small>
+                        </div>
+                        <p class="mb-0 small">@memory.Content</p>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<MemoryEntry> _memories = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<MemoryEntry>>("/api/memory/recent");
+            _memories = result ?? [];
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load memories: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string GetMemoryIcon(string type) => type switch
+    {
+        "location" => "🏰",
+        "character" => "👤",
+        "item" => "🎒",
+        "lore" => "📖",
+        _ => "⚔️",
+    };
+
+    private static string GetMemoryBadgeClass(string type) => type switch
+    {
+        "location" => "bg-info",
+        "character" => "bg-success",
+        "item" => "bg-warning text-dark",
+        "lore" => "bg-secondary",
+        _ => "bg-primary",
+    };
+
+    private sealed class MemoryEntry
+    {
+        public string Id { get; set; } = "";
+        public string Content { get; set; } = "";
+        public string MemoryType { get; set; } = "event";
+        public string? Tags { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

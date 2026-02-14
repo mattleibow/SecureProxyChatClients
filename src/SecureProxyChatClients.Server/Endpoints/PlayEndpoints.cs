@@ -8,6 +8,7 @@ using SecureProxyChatClients.Server.Data;
 using SecureProxyChatClients.Server.GameEngine;
 using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.Services;
+using SecureProxyChatClients.Server.VectorStore;
 using SecureProxyChatClients.Shared.Contracts;
 
 namespace SecureProxyChatClients.Server.Endpoints;
@@ -123,6 +124,7 @@ public static class PlayEndpoints
         InputValidator inputValidator,
         IGameStateStore gameStateStore,
         IConversationStore conversationStore,
+        IStoryMemoryService memoryService,
         ILogger<IConversationStore> logger,
         CancellationToken cancellationToken)
     {
@@ -135,8 +137,14 @@ public static class PlayEndpoints
 
         var playerState = await gameStateStore.GetOrCreatePlayerStateAsync(userId, cancellationToken);
 
+        // Recall past story memories for context
+        var recentMemories = await memoryService.GetRecentMemoriesAsync(userId, 5, cancellationToken);
+        string memoryContext = recentMemories.Count > 0
+            ? "\n\nPAST EVENTS THE PLAYER REMEMBERS:\n" + string.Join("\n", recentMemories.Select(m => $"- [{m.MemoryType}] {m.Content}"))
+            : "";
+
         // Build game context for the DM
-        string gameContext = BuildGameContext(playerState);
+        string gameContext = BuildGameContext(playerState) + memoryContext;
         var gameToolRegistry = new GameToolRegistry();
 
         // Session management
@@ -233,6 +241,9 @@ public static class PlayEndpoints
                         [new FunctionResultContent(fc.CallId, resultJson)]));
 
                     logger.LogInformation("Game tool {Tool} executed for player {PlayerId}", fc.Name, userId);
+
+                    // Store significant events as memories
+                    await StoreGameEventAsMemoryAsync(memoryService, userId, sessionId, fc.Name, result, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -260,6 +271,7 @@ public static class PlayEndpoints
         InputValidator inputValidator,
         IGameStateStore gameStateStore,
         IConversationStore conversationStore,
+        IStoryMemoryService memoryService,
         ILogger<IConversationStore> logger,
         CancellationToken cancellationToken)
     {
@@ -275,7 +287,14 @@ public static class PlayEndpoints
         if (userId is null) { httpContext.Response.StatusCode = 401; return; }
 
         var playerState = await gameStateStore.GetOrCreatePlayerStateAsync(userId, cancellationToken);
-        string gameContext = BuildGameContext(playerState);
+        
+        // Recall past story memories
+        var recentMemories = await memoryService.GetRecentMemoriesAsync(userId, 5, cancellationToken);
+        string memoryContext = recentMemories.Count > 0
+            ? "\n\nPAST EVENTS THE PLAYER REMEMBERS:\n" + string.Join("\n", recentMemories.Select(m => $"- [{m.MemoryType}] {m.Content}"))
+            : "";
+        
+        string gameContext = BuildGameContext(playerState) + memoryContext;
 
         // Session management
         string sessionId;
@@ -334,6 +353,10 @@ public static class PlayEndpoints
         {
             await conversationStore.AppendMessagesAsync(sessionId,
                 [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], cancellationToken);
+            
+            // Store the narrative as a story memory (truncated for brevity)
+            string summary = fullText.Length > 200 ? fullText.ToString()[..200] + "..." : fullText.ToString();
+            await memoryService.StoreMemoryAsync(userId, sessionId, summary, "event", ct: CancellationToken.None);
         }
 
         // Send state + done
@@ -353,6 +376,42 @@ public static class PlayEndpoints
         Stats: STR {state.Stats.GetValueOrDefault("strength", 10)} | DEX {state.Stats.GetValueOrDefault("dexterity", 10)} | WIS {state.Stats.GetValueOrDefault("wisdom", 10)} | CHA {state.Stats.GetValueOrDefault("charisma", 10)}
         Inventory: {string.Join(", ", state.Inventory.Select(i => $"{i.Emoji} {i.Name} (x{i.Quantity})"))}
         """;
+
+    private static async Task StoreGameEventAsMemoryAsync(
+        IStoryMemoryService memoryService, string userId, string sessionId,
+        string toolName, object? result, CancellationToken ct)
+    {
+        string? content = toolName switch
+        {
+            "MovePlayer" when result is LocationResult lr =>
+                $"Traveled to {lr.Location}",
+            "GiveItem" when result is ItemResult ir =>
+                $"Acquired {ir.Name}",
+            "TakeItem" when result is ItemResult ir =>
+                $"Lost {ir.Name}",
+            "RollCheck" when result is DiceCheckResult dr =>
+                $"Rolled {dr.Roll} for {dr.Stat} check ({(dr.Success ? "succeeded" : "failed")})",
+            "GenerateNpc" when result is NpcResult nr =>
+                $"Met {nr.Name}, a {nr.Role}",
+            "ModifyHealth" when result is HealthResult hr =>
+                $"Health changed by {hr.Amount} (from {hr.Source})",
+            "AwardExperience" when result is ExperienceResult xr =>
+                $"Gained {xr.Amount} XP for {xr.Reason}",
+            _ => null,
+        };
+
+        if (content is null) return;
+
+        string memoryType = toolName switch
+        {
+            "MovePlayer" => "location",
+            "GenerateNpc" => "character",
+            "GiveItem" or "TakeItem" => "item",
+            _ => "event",
+        };
+
+        await memoryService.StoreMemoryAsync(userId, sessionId, content, memoryType, ct: ct);
+    }
 }
 
 public sealed record NewGameRequest

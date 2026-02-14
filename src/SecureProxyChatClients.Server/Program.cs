@@ -8,6 +8,7 @@ using SecureProxyChatClients.Server.Endpoints;
 using SecureProxyChatClients.Server.GameEngine;
 using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.Services;
+using SecureProxyChatClients.Server.VectorStore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +54,19 @@ builder.Services.AddScoped<IConversationStore, EfConversationStore>();
 // Game engine
 builder.Services.AddSingleton<IGameStateStore, InMemoryGameStateStore>();
 
+// Vector store — use PostgreSQL with pgvector when available, fallback to in-memory
+string? vectorConnectionString = builder.Configuration.GetConnectionString("VectorStore");
+if (!string.IsNullOrEmpty(vectorConnectionString))
+{
+    builder.Services.AddDbContext<VectorDbContext>(o => o.UseNpgsql(vectorConnectionString, npgsqlOptions =>
+        npgsqlOptions.UseVector()));
+    builder.Services.AddScoped<IStoryMemoryService, PgVectorStoryMemoryService>();
+}
+else
+{
+    builder.Services.AddSingleton<IStoryMemoryService, InMemoryStoryMemoryService>();
+}
+
 // Rate limiting
 int permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 30);
 int windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
@@ -96,6 +110,7 @@ app.MapIdentityApi<IdentityUser>();
 app.MapChatEndpoints();
 app.MapSessionEndpoints();
 app.MapPlayEndpoints();
+app.MapMemoryEndpoints();
 
 app.MapGet("/api/ping", (HttpContext context) =>
 {
