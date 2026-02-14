@@ -68,7 +68,7 @@ public static class PlayEndpoints
         RouteGroupBuilder group = endpoints.MapGroup("/api/play")
             .RequireAuthorization(new AuthorizeAttribute
             {
-                AuthenticationSchemes = $"{IdentityConstants.BearerScheme},{IdentityConstants.ApplicationScheme}"
+                AuthenticationSchemes = IdentityConstants.BearerScheme
             })
             .RequireRateLimiting("chat");
 

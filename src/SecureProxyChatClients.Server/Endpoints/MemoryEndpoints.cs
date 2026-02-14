@@ -14,7 +14,7 @@ public static class MemoryEndpoints
         RouteGroupBuilder group = endpoints.MapGroup("/api/memory")
             .RequireAuthorization(new AuthorizeAttribute
             {
-                AuthenticationSchemes = $"{IdentityConstants.BearerScheme},{IdentityConstants.ApplicationScheme}"
+                AuthenticationSchemes = IdentityConstants.BearerScheme
             });
 
         group.MapGet("/recent", GetRecentMemoriesAsync)

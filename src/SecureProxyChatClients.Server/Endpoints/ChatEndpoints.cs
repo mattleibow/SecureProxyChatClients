@@ -19,10 +19,12 @@ public static class ChatEndpoints
 
     public static RouteGroupBuilder MapChatEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        // Bearer-only auth on API endpoints prevents CSRF attacks.
+        // The WASM client sends tokens via Authorization header, not cookies.
         RouteGroupBuilder group = endpoints.MapGroup("/api/chat")
             .RequireAuthorization(new AuthorizeAttribute
             {
-                AuthenticationSchemes = $"{IdentityConstants.BearerScheme},{IdentityConstants.ApplicationScheme}"
+                AuthenticationSchemes = IdentityConstants.BearerScheme
             })
             .RequireRateLimiting("chat");
 

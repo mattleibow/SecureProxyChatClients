@@ -13,7 +13,7 @@ public static class SessionEndpoints
         RouteGroupBuilder group = endpoints.MapGroup("/api/sessions")
             .RequireAuthorization(new AuthorizeAttribute
             {
-                AuthenticationSchemes = $"{IdentityConstants.BearerScheme},{IdentityConstants.ApplicationScheme}"
+                AuthenticationSchemes = IdentityConstants.BearerScheme
             });
 
         group.MapPost("/", CreateSessionAsync)

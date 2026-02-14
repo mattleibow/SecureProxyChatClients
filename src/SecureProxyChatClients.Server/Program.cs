@@ -99,21 +99,29 @@ else
     builder.Services.AddSingleton<IStoryMemoryService, InMemoryStoryMemoryService>();
 }
 
-// Rate limiting — token bucket for burst handling
+// Rate limiting — per-user token bucket to prevent single-user DoS
 int permitLimit = Math.Max(1, builder.Configuration.GetValue("RateLimiting:PermitLimit", 30));
 int windowSeconds = Math.Max(1, builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60));
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddTokenBucketLimiter("chat", limiterOptions =>
+    options.AddPolicy("chat", httpContext =>
     {
-        limiterOptions.TokenLimit = permitLimit;
-        limiterOptions.ReplenishmentPeriod = TimeSpan.FromSeconds(windowSeconds / permitLimit);
-        limiterOptions.TokensPerPeriod = 1;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 2;
-        limiterOptions.AutoReplenishment = true;
+        // Partition by authenticated user ID, falling back to IP address
+        string partitionKey = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous";
+
+        return RateLimitPartition.GetTokenBucketLimiter(partitionKey, _ => new TokenBucketRateLimiterOptions
+        {
+            TokenLimit = permitLimit,
+            ReplenishmentPeriod = TimeSpan.FromSeconds(Math.Max(1, windowSeconds / permitLimit)),
+            TokensPerPeriod = 1,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 2,
+            AutoReplenishment = true,
+        });
     });
 });
 
