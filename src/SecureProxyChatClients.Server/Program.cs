@@ -175,6 +175,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler();
+
+// ForwardedHeaders must run first to resolve correct client IP/proto for all downstream middleware
+app.UseForwardedHeaders();
+
 // Security headers middleware
 app.Use(async (context, next) =>
 {
@@ -204,11 +209,6 @@ app.Use(async (context, next) =>
             context.Response.StatusCode, user, context.Request.Path);
     }
 });
-
-app.UseExceptionHandler();
-
-// ForwardedHeaders must run before HTTPS redirect to resolve correct client IP/proto
-app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {

@@ -191,4 +191,64 @@ public class ContentFilterTests
         Assert.DoesNotContain("<object", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<embed", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [InlineData("<ScRiPt>alert('xss')</ScRiPt>")]
+    [InlineData("<SCRIPT>alert('xss')</SCRIPT>")]
+    [InlineData("<sCrIpT src='evil.js'></sCrIpT>")]
+    public void FilterResponse_HandlesMixedCaseScriptTags(string malicious)
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = malicious }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.DoesNotContain("script", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("<IFRAME src='evil.html'></IFRAME>")]
+    [InlineData("<IFrame SRC='evil.html'></IFrame>")]
+    public void FilterResponse_HandlesMixedCaseIframeTags(string malicious)
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = malicious }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.DoesNotContain("iframe", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("ONCLICK=\"alert('xss')\"")]
+    [InlineData("OnMouseOver='evil()'")]
+    [InlineData("onerror=\"steal()\"")]
+    public void FilterResponse_HandlesMixedCaseEventHandlers(string malicious)
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = $"<img {malicious}>" }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.DoesNotMatch(@"on\w+=", result.Messages[0].Content);
+    }
+
+    [Fact]
+    public void FilterResponse_HandlesJavascriptProtocolCaseVariations()
+    {
+        var response = new ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = "JAVASCRIPT:alert('xss')" }]
+        };
+
+        var result = _filter.FilterResponse(response);
+
+        Assert.DoesNotContain("javascript:", result.Messages[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
 }
