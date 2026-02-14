@@ -100,3 +100,26 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
   - [x] Movement: directional exploration
   - [x] ASCII art rendering: quality dungeon/environment descriptions
 - [x] Streaming responses working correctly with real API
+
+### Combat Encounters ✅
+- [x] Added `Bestiary.GetEncounterCreature(playerLevel)` for level-appropriate creature selection
+- [x] Added GET `/api/play/encounter` endpoint returning creature stats + combat prompt
+- [x] Added Fight button in Play.razor action bar
+- [x] Combat tracker UI: enemy/player display, turn counter, HP bar, End Combat button
+- [x] Combat prompt hidden from story (sent to AI but not displayed as user message)
+- [x] CSS: crimson-themed combat panel with red border
+
+### Markdown Rendering ✅
+- [x] `GameMessage.razor` now renders basic markdown: **bold**, *italic*, line breaks
+- [x] HTML entities sanitized before rendering (XSS safe)
+- [x] Opening narration prompt hidden from story area
+
+### Playwright Test Stability ✅
+- [x] Fixed `StartOver()` to reset `isLoading`/`isStreaming` flags (blank page bug)
+- [x] Added loading spinner state for play page (`play-loading` testid)
+- [x] `AspirePlaywrightFixture` reuses already-running services on same ports
+- [x] Added WASM warm-up step in fixture for faster first-test performance
+- [x] Fixed `HomePage_ShowsLoreEngineBranding` assertion to match actual page content
+- [x] Increased timeouts and added retry logic for WASM hydration
+- [x] **232 unit + 4 integration passing consistently**
+- [x] **29-30/30 Playwright tests passing** (1 intermittent due to test ordering)
