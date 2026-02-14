@@ -1,6 +1,11 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using SecureProxyChatClients.Server.AI;
 using SecureProxyChatClients.Server.Data;
+using SecureProxyChatClients.Server.Endpoints;
+using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +36,32 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddOpenApi();
 
+// AI services
+builder.Services.AddAiServices(builder.Configuration);
+
+// Security services
+builder.Services.Configure<SecurityOptions>(
+    builder.Configuration.GetSection(SecurityOptions.SectionName));
+builder.Services.AddSingleton<InputValidator>();
+builder.Services.AddSingleton<ContentFilter>();
+builder.Services.AddSingleton<SystemPromptService>();
+
+// Rate limiting
+int permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 30);
+int windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("chat", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = permitLimit;
+        limiterOptions.Window = TimeSpan.FromSeconds(windowSeconds);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+});
+
 var app = builder.Build();
 
 // Ensure database is created and seed data
@@ -52,8 +83,10 @@ app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapIdentityApi<IdentityUser>();
+app.MapChatEndpoints();
 
 app.MapGet("/api/ping", (HttpContext context) =>
 {
