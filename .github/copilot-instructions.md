@@ -21,7 +21,7 @@
 8. **Separate apps, separate origins** — Server is a web app with Identity UI (registration); WASM is a plain standalone app (login only, no registration). CORS configured for cross-origin API calls.
 9. **Server tools** = AIFunctions the AI model requests, executed on server (GenerateScene, CreateCharacter, AnalyzeStory, SuggestTwist)
 10. **Client tools** = AIFunctions the AI model requests, executed locally in WASM (GetStoryGraph, SearchStory, SaveStoryState, RollDice, GetWorldRules)
-11. **HttpClient streaming** — Blazor WASM uses HttpClient with ResponseHeadersRead for SSE (not EventSource)
+11. **HttpClient streaming** — Blazor WASM uses HttpClient for SSE. NOTE: WASM does NOT support `StreamReader.ReadLineAsync()` over streams — read full response then parse SSE events
 12. **Same-origin NOT required** — WASM and server are separate origins; use CORS + bearer tokens
 13. **Auth shape from Phase 1** — Identity API endpoints + registration UI on server from day 1; WASM has login-only page
 
@@ -124,8 +124,15 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-13: "Secure augmenting proxy" — server adds auth, security, tools, content filtering, and enriches/augments client requests before forwarding to AI. Not a passthrough.
 - 2026-02-13: xUnit standardized for all test projects — Microsoft.Playwright.Xunit provides same PageTest base class; uses `[Fact]` + `IAsyncLifetime` instead of NUnit's `[Test]` + `[SetUp]`/`[TearDown]`
 - 2026-02-13: Bearer tokens stored in memory (not localStorage) for v1 — most secure, simplest; token lost on refresh is acceptable for now
+- 2026-02-14: Bearer tokens stored in sessionStorage — survives SPA navigation; cleared on tab close; better UX than pure in-memory
 - 2026-02-13: Entra ID is additive — can be wired in at any phase without architectural changes; local Identity API endpoints provide complete auth story
 - 2026-02-13: Three-model review (Gemini + Codex + Opus) catches different things: Gemini found state/protocol issues, Codex found scope contradictions, Opus found phase ordering problems
 - 2026-02-13: CORS for WASM+server: use `AllowAnyMethod/AllowAnyHeader/WithOrigins` but NOT `AllowCredentials` (bearer tokens don't need credentials mode)
 - 2026-02-13: Integration tests need auth setup too — seed user login in `InitializeAsync` and attach bearer token to HttpClient
+- 2026-02-14: `dotnet new webapi --auth Individual` is NOT available in .NET 10 — must add Identity packages manually (Microsoft.AspNetCore.Identity.EntityFrameworkCore + EF Sqlite + EF Design)
+- 2026-02-14: Blazor WASM HttpClient does NOT support `StreamReader.ReadLineAsync()` over HTTP streams — throws `net_http_synchronous_reads_not_supported`. Must read full response then parse SSE events.
+- 2026-02-14: `AuthenticatedHttpMessageHandler.SendAsync` must call `authState.InitializeAsync()` to read token from sessionStorage — handler may be created before page sets token
+- 2026-02-14: HttpClientFactory creates handler instances separately from page DI scope — `AddTransient<AuthenticatedHttpMessageHandler>()` is correct, NOT `AddScoped`
+- 2026-02-14: Playwright E2E tests with sessionStorage auth: use full page reload (`page.GotoAsync`) not SPA navigation to ensure sessionStorage is read by handler on fresh page load
+- 2026-02-14: Playwright `WaitForFunction` with JavaScript is more reliable than `WaitForSelectorAsync` for checking dynamic state (e.g., button enabled/disabled)
 - 2026-02-13: ChatResponse constructor varies by MEAI version — use `new ChatResponse([message])` (list form) for compatibility

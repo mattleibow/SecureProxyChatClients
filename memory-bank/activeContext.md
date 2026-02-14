@@ -1,54 +1,57 @@
 # Active Context
 
-> **Last updated**: 2026-02-13
+> **Last updated**: 2026-02-15
 
 ## Current Phase
 
-**Planning** — Two rounds of 3-model review complete. All CRITICAL/HIGH issues resolved. Plan is solid. Ready for implementation.
+**Phase 3 COMPLETE** — Phases 1–3 fully implemented and tested. 42 tests passing (28 unit, 4 integration, 10 Playwright E2E). All tested live: login → chat → send → stream → multi-turn works.
 
 ## What We Just Did
 
-- **Second 3-model review** (Gemini 3 Pro, GPT-5.3 Codex, Claude Opus 4.6) — final review round
-- Fixed all remaining CRITICAL/HIGH findings:
-  - R8 reframed: client is authoritative for context window; server persists history for audit/resume only
-  - Removed `agent-message` from SSE protocol (server has no agent knowledge)
-  - Added S8 implementation (client tool result validation) as Phase 6 task 6.5
-  - Fixed `sessionId` vs `messages` ambiguity: client sends `messages` (authoritative); `sessionId` for persistence
-  - Phase 6: replaced "Agent" terminology with "AI model"/"ProxyChatClient" (agents don't exist until Phase 9)
-  - Phase 7: renamed to "Conversation Persistence & Sessions", added exit criteria
-  - Phase 8: aligned schema names with lore-engine.md (Scene, Character, StoryAnalysis)
-  - Phase 10: removed Export (deferred to Phase 12+)
-  - Fixed registration URL in Playwright test (/Identity/Account/Register)
-  - Fixed copilot-instructions: rule numbering, decision log phase assignments, stale entries
-  - Added terminology glossary to plan.md
-  - Standardized test project names in validation commands
-  - Cleaned up risks table (removed resolved risks, removed ambiguous "or" wording)
-  - Agent Framework WASM risk: added to risks table
-  - Entra ID: explicitly deferred to Phase 12+
-  - Added CORS configuration snippet to recommendations
-  - Fixed ChatResponse constructor, added EscapeForShell/StripCopilotFooter stubs
+- **Phase 1: Foundation + Auth** (commit `ed678cb`)
+  - Solution structure: AppHost, ServiceDefaults, Server, Client.Web, Shared, 4 test projects
+  - Server with ASP.NET Identity (manual setup — `dotnet new webapi --auth Individual` broken in .NET 10)
+  - SQLite database, seed test user, CORS configuration
+  - Blazor WASM login page with bearer token auth
+  - `AuthenticatedHttpMessageHandler` + `AuthState` (sessionStorage-backed)
+  - Protected `/api/ping` endpoint
+  - Aspire wiring (separate apps, separate ports)
+  - Shared contracts (ChatRequest, ChatResponse, ChatStreamEvent, LoginRequest/Response, etc.)
+
+- **Phase 2: Security + Chat Proxy** (commit `ffd1097`)
+  - POST `/api/chat` endpoint with auth, role stripping, input validation, content filtering
+  - `FakeChatClient` (deterministic, for tests) + `CopilotCliChatClient` (dev-time AI)
+  - Config-based AI provider switching (`AI:Provider` in appsettings)
+  - Security middleware: `InputValidator`, `ContentFilter`, `SecurityOptions`
+  - `SystemPromptService` for server-side system prompt injection
+
+- **Phase 3: Chat UI + Streaming** (commits `8fc91ac`, `c0b5034`)
+  - Chat.razor with message display, auto-scroll, streaming text
+  - SSE streaming via full-response-then-parse (not `StreamReader.ReadLineAsync` — broken in WASM)
+  - 10 Playwright E2E tests (auth flows + chat flows)
+  - `AuthState` refactored to use sessionStorage for WASM page navigation survival
 
 ## What We're Doing Next
 
-- Begin Phase 1: Foundation + Auth
-  - Create solution structure (8 projects)
-  - Server with Identity (registration UI + API + CORS)
-  - Seed test user
-  - Blazor WASM login page
-  - Authenticated HttpClient with bearer token
-  - Protected `/api/ping` endpoint
-  - Aspire wiring (separate apps, separate ports)
-  - Shared contracts
-  - First Playwright test: register → login → call protected API
+- **Phase 4: Security Hardening**
+  - Per-user rate limiting (`Microsoft.AspNetCore.RateLimiting`)
+  - Message length limits enforcement
+  - Content sanitization (XSS prevention on LLM output)
+  - Format validation
+  - Tool allowlisting groundwork
 
-## Key Decisions Made This Session
+- **Phase 5: Server-Side Tools**
+  - `AIFunction` registration on server (GenerateScene, CreateCharacter, AnalyzeStory, SuggestTwist)
+  - Tool execution pipeline
+  - Tool result injection into AI conversation
 
-1. **Continuation-token multi-turn** — no hanging SSE during tool calls
-2. **Split state model** — client authoritative for context window (`messages`); server persists for audit/resume
-3. **HttpClient streaming** — Blazor WASM uses HttpClient with ResponseHeadersRead (not EventSource)
-4. **Separate origins** — WASM and server on different ports, CORS + bearer tokens
-5. **Auth-first phases** — Phase 1 = Foundation + Auth (Identity from template)
-6. **xUnit everywhere** — standardized test framework (Microsoft.Playwright.Xunit available)
-7. **In-memory bearer token** — simplest/most secure for v1
-8. **Entra ID deferred** — Phase 12+ (local auth sufficient for now)
-9. **.NET 10 fallback** — if unavailable, use .NET 9/C# 13 (architecture-independent)
+- Future: Phase 6 (Client Tools) → Phase 7 (Persistence) → Phase 8 (Structured Output) → Phase 9 (Multi-Agent) → Phase 10 (Game Polish) → Phase 11 (Docs)
+
+## Key Technical Learnings
+
+1. **`dotnet new webapi --auth Individual` doesn't work in .NET 10** — must add Identity manually (AddIdentityApiEndpoints + AddEntityFrameworkStores + MapIdentityApi)
+2. **Blazor WASM doesn't support `StreamReader.ReadLineAsync()` over HTTP** — read full response then parse SSE events
+3. **HttpClientFactory handlers need `AuthState.InitializeAsync()` in `SendAsync`** — to pick up sessionStorage token (DI resolves handler as transient, not from page scope)
+4. **In WASM, AuthState must use sessionStorage** (not just in-memory) to survive page navigations
+5. **Playwright tests sharing a fixture need full page reload** (not SPA nav) for sessionStorage-based auth to work
+6. **`AddHttpMessageHandler<T>()` resolves T as transient from DI**, not from the page's CascadingParameter scope

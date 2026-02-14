@@ -1,6 +1,6 @@
 # Decision Log
 
-> **Last updated**: 2026-02-13
+> **Last updated**: 2026-02-15
 
 ## Decisions
 
@@ -188,3 +188,33 @@
 - **Context**: "Session Management" implied server-authoritative state. Gemini flagged.
 - **Decision**: Renamed to clarify: server persists history for audit/resume, client owns context.
 - **Rationale**: Clearer intent matches the client-authoritative architecture.
+
+### 2026-02-15: Manual Identity setup required in .NET 10
+- **Context**: `dotnet new webapi --auth Individual` template is broken/unavailable in .NET 10 preview.
+- **Decision**: Add Identity manually: `AddIdentityApiEndpoints<AppUser>()` + `AddEntityFrameworkStores<AppDbContext>()` + `MapIdentityApi<AppUser>()` with SQLite.
+- **Rationale**: Only way to get Identity API endpoints working in .NET 10. Template may be fixed later.
+
+### 2026-02-15: Full-response-then-parse for SSE in Blazor WASM
+- **Context**: `StreamReader.ReadLineAsync()` over HTTP doesn't work in Blazor WASM (browser fetch limitation).
+- **Decision**: Read the entire response body, then parse SSE events from the complete string.
+- **Rationale**: Only reliable approach in WASM. Streaming appearance maintained via event-by-event UI updates after parsing.
+
+### 2026-02-15: sessionStorage for bearer token (not in-memory)
+- **Context**: Original plan was in-memory bearer token. In WASM, page navigations cause component re-initialization, losing in-memory state.
+- **Decision**: Store bearer token in sessionStorage via JS interop. `AuthState` reads from sessionStorage on initialization.
+- **Rationale**: Survives SPA page navigations and full page reloads within the same browser tab. Cleared on tab close (more secure than localStorage).
+
+### 2026-02-15: AuthState.InitializeAsync() in HttpMessageHandler.SendAsync
+- **Context**: `AddHttpMessageHandler<T>()` resolves T as transient from DI, not from the page's scope. The handler instance doesn't share the page's AuthState.
+- **Decision**: Call `AuthState.InitializeAsync()` inside `SendAsync` to read the sessionStorage token before attaching the Authorization header.
+- **Rationale**: Ensures the handler always has the current token regardless of DI scope. Works because sessionStorage is a shared browser-level store.
+
+### 2026-02-15: Playwright full page reload for sessionStorage auth
+- **Context**: Playwright tests sharing a fixture (same browser context) need auth state. SPA navigation doesn't trigger sessionStorage reads in new page components.
+- **Decision**: Use `Page.GotoAsync(url)` (full page reload) instead of clicking SPA nav links when auth state needs to be picked up.
+- **Rationale**: Full reload re-initializes all Blazor components, triggering `AuthState.InitializeAsync()` which reads from sessionStorage.
+
+### 2026-02-15: Phases 2+3 merged in implementation
+- **Context**: Plan had Phase 2 (Basic Chat) and Phase 3 (Streaming) as separate phases.
+- **Decision**: Implemented chat endpoint with SSE streaming from the start. Phase 2 commit includes the proxy + security; Phase 3 commits include Chat UI + Playwright E2E.
+- **Rationale**: Streaming was natural to implement alongside the chat endpoint. Splitting would have required a non-streaming endpoint that would be immediately replaced.

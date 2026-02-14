@@ -1,6 +1,6 @@
 # System Patterns
 
-> **Last updated**: 2026-02-13
+> **Last updated**: 2026-02-15
 
 ## Architecture Pattern
 
@@ -51,19 +51,26 @@
 - **Client tools**: `AIFunction` registered in client WASM, AI model requests them, client executes locally (GetStoryGraph, etc.)
 - Client tools operate on local data (IndexedDB) — no server round-trip
 
-### 4. Streaming via SSE
+### 4. Streaming via SSE (WASM-adapted)
 - Server streams `ChatResponseUpdate` via Server-Sent Events
 - Client consumes via HttpClient streaming (not EventSource — needs POST + auth headers)
+- **WASM limitation**: `StreamReader.ReadLineAsync()` doesn't work over HTTP in Blazor WASM — read full response then parse SSE events
 - Event IDs for deduplication, heartbeats every 15s, hard timeout
 
 ### 5. Dual Auth
-- **v1 (dev + production)**: ASP.NET Core Identity API endpoints (auto /register, /login) with SQLite
+- **v1 (dev + production)**: ASP.NET Core Identity API endpoints (manual setup — template broken in .NET 10) with SQLite
 - **Phase 12+**: Microsoft Entra ID (OAuth 2.0 / OIDC) — additive
 - Server→OpenAI: PAT from environment variable (v1); Entra managed identity (Phase 12+)
 
-### 6. Split State Management
-- **Server**: Conversation state (IConversationStore — in-memory, pluggable to Redis)
-- **Client**: Story/game state (IndexedDB — full story graph, characters, world rules)
+### 6. sessionStorage-Backed Auth State
+- Bearer token stored in `sessionStorage` (not in-memory) to survive WASM page navigations
+- `AuthState` service reads/writes via JS interop
+- `AuthenticatedHttpMessageHandler` calls `AuthState.InitializeAsync()` in `SendAsync` (handler is DI-transient, not page-scoped)
+- Cleared on tab close (more secure than localStorage)
+
+### 7. Split State Management (planned)
+- **Server**: Conversation state (IConversationStore — in-memory, pluggable to Redis) — Phase 7
+- **Client**: Story/game state (IndexedDB — full story graph, characters, world rules) — Phase 9+
 
 ## Middleware Pipeline (Server — Secure Augmenting Proxy)
 
