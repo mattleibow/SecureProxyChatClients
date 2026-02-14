@@ -1,54 +1,30 @@
 # LoreEngine — Complete Gameplay Walkthrough
 
-> A step-by-step guide from first-time registration to full gameplay, with screenshots of every stage.
+> A step-by-step guide from first-time registration through a full gameplay session, with real screenshots captured using Azure OpenAI. Every screenshot shows genuine AI-generated content — no mock data.
 
 ---
 
-## 1. Landing Page
+## 1. Create Your Account
 
-When you first visit LoreEngine, you see the home page with the game's title banner and a call to action. The sidebar shows limited options — only **Bestiary** and authentication links are available to unauthenticated users.
+Click **📝 Register** in the sidebar. Enter your email address and choose a strong password (minimum 12 characters with uppercase, lowercase, digit, and special character). Confirm your password and click **Create Account**.
 
-![Home Page](screenshots/01-home-page.png)
+The sidebar shows limited options for unauthenticated users — only **Home**, **Bestiary**, **Login**, and **Register** are available.
 
----
-
-## 2. Create Your Account
-
-Click **📝 Register** in the sidebar to create your adventurer's account.
-
-![Register Page](screenshots/02-register-page.png)
+![Registration Form](screenshots/01-registration-form.png)
 
 ---
 
-## 3. Fill In Your Credentials
+## 2. Registration Complete
 
-Enter your email address and choose a strong password (minimum 12 characters with uppercase, lowercase, digit, and special character). Confirm your password and click **Create Account**.
+After successful registration, you're automatically logged in and redirected to the **Play** page. The sidebar now shows the full navigation: Play, Journal, Bestiary, Achievements, Create Story, Writers Room, Chat, and Logout.
 
-![Registration Form](screenshots/03-register-filled.png)
-
----
-
-## 4. Character Creation
-
-After registration, you're automatically logged in and redirected to the **Play** page. The sidebar now shows the full navigation: Play, Journal, Bestiary, Achievements, Create Story, Writers Room, and Chat.
-
-The character creation screen welcomes you to the LoreEngine with an ASCII-art banner. Enter your character's name and choose a class.
-
-![Character Creation](screenshots/04-character-creation.png)
+![Registration Complete](screenshots/02-registration-complete.png)
 
 ---
 
-## 5. Name Your Character
+## 3. Character Creation
 
-Type your character's name. Choose something that fits the fantasy setting — names like "Thorn Ironforge" or "Elara Moonwhisper" work well. Names are limited to 30 characters.
-
-![Character Name](screenshots/05-character-name.png)
-
----
-
-## 6. Choose Your Class
-
-Select one of four classes, each with unique starting stats and equipment:
+The character creation screen welcomes you with an ASCII-art banner. Enter your character's name and choose one of four classes:
 
 | Class | Bonus Stats | Starting Equipment |
 |-------|-------------|-------------------|
@@ -59,108 +35,206 @@ Select one of four classes, each with unique starting stats and equipment:
 
 All classes start with 2× Healing Potions, 100 HP, 10 gold, and Level 1.
 
-![Class Selected](screenshots/06-class-selected.png)
+![Character Creation](screenshots/03-character-creation.png)
 
 ---
 
-## 7. Begin Your Adventure
+## 4. Begin Your Adventure
 
-Click **Begin Your Adventure** to start the game! You arrive at **The Crossroads** — the central hub of the world. The game UI shows:
+Click **⚔️ Begin Your Adventure** to start! The AI Dungeon Master describes your opening scene. The full game UI appears:
 
 - **Status bar** — Character name, class, level, HP bar, gold, XP, and current location
 - **Narrative area** — The AI Dungeon Master describes your surroundings
 - **Action input** — Type what you want to do, or use quick-action buttons
-- **Inventory panel** — Your equipment and items (right side)
+- **Inventory sidebar** — Your equipment and items (right side)
 - **Stats panel** — Your ability scores (right side)
 
-Quick-action buttons include: 👁 LOOK, 🎒 INVENTORY, 💬 TALK, 🔍 SEARCH, 💤 REST, 🌀 TWIST, ⚔ FIGHT, 👁 ORACLE, and 🗺 MAP.
-
-![Adventure Start](screenshots/07-adventure-start.png)
+![Opening Scene](screenshots/04-opening-scene.png)
 
 ---
 
-## 8. Explore: Look Around
+## 5. Look Around
 
-Type a command like *"I carefully look around, examining my surroundings"* and click **ACT**. The AI Dungeon Master responds with a description of what you see. The game uses a dice-roll system behind the scenes — you may see dice check results appear as badges above the narrative.
+Click the **👁 LOOK** quick action to examine your surroundings. The AI responds with a detailed description of what you see, hear, and smell in your current location.
 
-![Look Around](screenshots/08-look-around.png)
-
----
-
-## 9. Travel: Move to a New Location
-
-Type *"I head north into the Dark Forest"* to travel. The game supports multiple connected locations:
-
-- **The Crossroads** → Dark Forest, Village of Thornwall, Mountain Path, Swamp of Sorrows
-- **Dark Forest** → The Crossroads, Ruins of Aldenmere, Goblin Caves
-- And many more...
-
-Use the **🗺 MAP** button to see all discovered locations and available connections.
-
-![Move North](screenshots/09-move-north.png)
+![Look Around](screenshots/05-look-around.png)
 
 ---
 
-## 10. Search for Treasure
+## 6. Travel to the Dark Forest
 
-Type *"I search the area for hidden treasure or useful items"* to search. Search actions trigger a **Wisdom check** (d20 + modifier vs. difficulty class). On success, you may find gold, items, or hidden passages.
+Type *"I travel to the Dark Forest"* and click **ACT**. The game moves you to a new location. A dice check badge appears showing the movement result. The location indicator in the status bar updates.
 
-The dice check badge shows the roll result: `d20=X +modifier = total vs DC Y → Success/Failure`.
-
-![Search Treasure](screenshots/10-search-treasure.png)
+![Dark Forest](screenshots/06-dark-forest.png)
 
 ---
 
-## 11. Combat
+## 7. World Map
 
-Type *"I attack the nearest enemy with my Iron Sword!"* to initiate combat. Combat uses the dice-roll system:
+Click **🗺 MAP** to view the world map. The map shows all discoverable locations and their connections, letting you plan your route through the realm.
+
+![World Map](screenshots/07-world-map.png)
+
+---
+
+## 8. Search for Items
+
+Click **🔍 SEARCH** to scour the area for hidden items and treasure. Search actions trigger a **Wisdom check** (d20 + modifier vs. difficulty class). On success, you may find gold, items, or hidden passages.
+
+![Search Area](screenshots/08-search-area.png)
+
+---
+
+## 9. Combat Encounter
+
+Click **⚔ FIGHT** to trigger a combat encounter! A creature appears and the **Combat Tracker** activates at the top of the screen, showing:
+
+- The creature's name and level
+- Your character's name and HP bar
+- Dice roll results with color-coded outcomes (green = success, red = failure)
+
+The AI narrates the battle dramatically, including attack descriptions, damage dealt, and combat rewards (XP and gold).
+
+![Encounter](screenshots/09-encounter.png)
+
+---
+
+## 10. Attack in Combat
+
+Type *"I attack with my Iron Sword!"* to fight back. The dice system determines the outcome:
 
 - **Attack rolls** — d20 + STR/DEX modifier vs. enemy's defense DC
-- **Critical Success** — Rolling a natural 20 always succeeds
-- **Critical Failure** — Rolling a natural 1 always fails (shown in red)
-- **Success** — Total meets or exceeds the DC (shown in green)
+- **Critical Success** — Natural 20 always succeeds
+- **Critical Failure** — Natural 1 always fails
+- **Damage** — Weapon damage on successful hits
 
-In this example, you can see multiple dice checks in a single combat exchange, including a critical failure (d20=1) and a successful attack (d20=19).
-
-![Combat](screenshots/11-combat.png)
+![Attack](screenshots/10-attack.png)
 
 ---
 
-## 12. Browse the Bestiary
+## 11. Defend in Combat
 
-Visit the **📖 Bestiary** page to see all creatures you might encounter. Each creature card shows:
+Type *"I raise my shield to defend"* to take a defensive action. Different actions work better with different stats — Warriors benefit from STR-based attacks while Rogues excel at DEX-based evasion.
 
-- Name, level, HP, and damage
-- Description and special abilities
-- Weakness and rewards (gold + XP)
-
-Creatures range from Level 1 (Goblin Scout, Dire Rat) to high-level bosses (Crystal Golem, Wraith Lord, Swamp Hydra).
-
-![Bestiary](screenshots/12-bestiary.png)
+![Defend](screenshots/11-defend.png)
 
 ---
 
-## 13. Review Your Journal
+## 12. Use Items
 
-The **📜 Journal** page keeps a record of your adventure history — past sessions, significant events, and story progression.
+Type *"I use a Healing Potion"* to consume items from your inventory. Healing Potions restore HP, and the inventory sidebar updates in real time as items are used.
 
-![Journal](screenshots/13-journal.png)
-
----
-
-## 14. Free-Form Chat
-
-The **💬 Chat** page offers a general-purpose AI chat interface, separate from the game. Use it to ask questions, discuss strategy, or have creative conversations.
-
-![Chat Page](screenshots/14-chat-page.png)
+![Use Potion](screenshots/12-use-potion.png)
 
 ---
 
-## 15. Authenticated Home Page
+## 13. Twist of Fate
 
-After logging in, the home page updates to show your authenticated status with the full navigation menu, including all game features.
+Click **🌀 TWIST** to trigger a random plot twist! The AI introduces an unexpected event — anything from a mysterious stranger appearing to a sudden storm or discovering a hidden passage. Twists keep the story fresh and unpredictable.
 
-![Home Authenticated](screenshots/16-home-authenticated.png)
+![Twist of Fate](screenshots/13-twist-of-fate.png)
+
+---
+
+## 14. Consult the Oracle
+
+Click **👁 ORACLE** to ask the Oracle for guidance. The Oracle provides cryptic hints and prophetic visions that can reveal hidden information about your quest, nearby dangers, or secret treasures.
+
+![Oracle](screenshots/14-oracle.png)
+
+---
+
+## 15. Rest and Recover
+
+Click **💤 REST** to tend to wounds and recover health. Resting may restore HP and can trigger random events or encounters while you sleep.
+
+![Rest](screenshots/15-rest.png)
+
+---
+
+## 16. Talk to NPCs
+
+Click **💬 TALK** to interact with nearby characters. NPCs can offer quests, sell items, share lore about the world, or provide hints about dangers ahead.
+
+![Talk to NPC](screenshots/16-talk-npc.png)
+
+---
+
+## 17. Visit the Village
+
+Type *"I travel to the Village of Thornwall"* to visit the village. Different locations offer different opportunities — villages have shops and quest-givers, forests have creatures and hidden treasures, ruins hold ancient artifacts.
+
+![Village](screenshots/17-village.png)
+
+---
+
+## 18. Explore the Market
+
+Type *"I visit the Market Square to buy supplies"* to browse for equipment and items. Markets let you spend gold on better weapons, armor, potions, and other adventuring supplies.
+
+![Market](screenshots/18-market.png)
+
+---
+
+## 19. Browse the Bestiary
+
+Visit the **📖 Bestiary** page to view all creatures in the game. Each creature card shows name, level, HP, damage, description, weaknesses, and rewards (gold + XP). Creatures range from Level 1 (Goblin Scout, Dire Rat) to high-level bosses.
+
+![Bestiary](screenshots/19-bestiary.png)
+
+---
+
+## 20. Review Your Journal
+
+The **📜 Journal** page keeps a record of your adventure history — past sessions, significant events, story progression, and discoveries.
+
+![Journal](screenshots/20-journal.png)
+
+---
+
+## 21. Check Achievements
+
+The **🏆 Achievements** page tracks your progress across 18 achievements including First Blood, Treasure Hunter, Cartographer, Dragon Slayer, and more. Achievements unlock as you play.
+
+![Achievements](screenshots/21-achievements.png)
+
+---
+
+## 22. Create a Story
+
+The **📝 Create Story** page lets you craft custom story scenarios that can be used as starting points for new adventures.
+
+![Create Story](screenshots/22-create-story.png)
+
+---
+
+## 23. The Writer's Room
+
+Visit the **📝 Writers Room** to pitch story ideas. Type a premise and submit it — multiple AI agents (Storyteller and Critic) discuss and develop your idea collaboratively.
+
+![Writers Room Pitch](screenshots/23-writers-room-pitch.png)
+
+The AI agents respond with detailed scene descriptions, constructive feedback, and refined story elements:
+
+![Writers Room Discussion](screenshots/24-writers-room-discussion.png)
+
+---
+
+## 24. Free-Form Chat
+
+The **💬 Chat** page offers a general-purpose AI chat interface separate from the game. Use it to ask questions, discuss strategy, or have creative conversations with streaming AI responses.
+
+![Chat Input](screenshots/25-chat-input.png)
+
+![Chat Response](screenshots/26-chat-response.png)
+
+---
+
+## 25. Authenticated Home Page
+
+The home page shows your authenticated status with the full navigation menu, a welcome message, and quick links to all game features.
+
+![Home Authenticated](screenshots/27-home-authenticated.png)
 
 ---
 
