@@ -19,7 +19,7 @@ public class ChatEndpointTests : IAsyncLifetime
         var cts = new CancellationTokenSource(DefaultTimeout);
         var appHost = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.SecureProxyChatClients_AppHost>(
-                ["--AI:Provider=Fake"], cts.Token);
+                ["--AI:Provider=Fake", "--SeedUser:Password=Test123!"], cts.Token);
 
         _app = await appHost.BuildAsync(cts.Token);
         await _app.StartAsync(cts.Token);
@@ -29,21 +29,27 @@ public class ChatEndpointTests : IAsyncLifetime
             .WaitAsync(DefaultTimeout, cts.Token);
 
         _unauthClient = _app.CreateHttpClient("server");
+        _authedClient = _app.CreateHttpClient("server");
 
-        // Use cookie-based auth for integration tests (Identity bearer tokens
-        // use Data Protection which is ephemeral in Aspire test environments)
-        Uri baseAddress = _app.CreateHttpClient("server").BaseAddress!;
-        var handler = new HttpClientHandler { UseCookies = true };
-        _authedClient = new HttpClient(handler) { BaseAddress = baseAddress };
-
-        var loginResponse = await _authedClient.PostAsJsonAsync("/login?useCookies=true",
-            new { email = "test@test.com", password = "Test123!" }, cts.Token);
+        // Authenticate via Bearer token (API endpoints are Bearer-only)
+        var loginResponse = await _authedClient.PostAsJsonAsync("/login", new
+        {
+            email = "test@test.com",
+            password = "Test123!"
+        }, cts.Token);
 
         if (!loginResponse.IsSuccessStatusCode)
         {
             string body = await loginResponse.Content.ReadAsStringAsync(cts.Token);
             throw new InvalidOperationException($"Login failed: {loginResponse.StatusCode} {body}");
         }
+
+        var json = await loginResponse.Content.ReadFromJsonAsync<JsonElement>(cts.Token);
+        string accessToken = json.GetProperty("accessToken").GetString()
+            ?? throw new InvalidOperationException("No accessToken in login response");
+
+        _authedClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
     }
 
     [Fact]

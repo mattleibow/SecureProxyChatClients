@@ -29,7 +29,6 @@ public sealed class CopilotCliChatClient(ILogger<CopilotCliChatClient> logger, s
         psi.ArgumentList.Add(model);
         psi.ArgumentList.Add("--available-tools");
         psi.ArgumentList.Add("");
-        psi.ArgumentList.Add("--allow-all-tools");
 
         try
         {

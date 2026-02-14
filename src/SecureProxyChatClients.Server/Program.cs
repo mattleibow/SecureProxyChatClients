@@ -48,14 +48,6 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
     options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
 });
-// builder.Services.ConfigureApplicationCookie(options =>
-// {
-//     options.Cookie.HttpOnly = true;
-//     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-//     options.Cookie.SameSite = SameSiteMode.Strict;
-//     options.ExpireTimeSpan = TimeSpan.FromHours(2);
-//     options.SlidingExpiration = true;
-// });
 
 builder.Services.AddScoped<SeedDataService>();
 
@@ -202,10 +194,9 @@ app.Use(async (context, next) =>
     }
 });
 
-app.UseHttpsRedirection();
-
 if (!app.Environment.IsDevelopment())
 {
+    app.UseHttpsRedirection();
     app.UseHsts();
 }
 
@@ -232,6 +223,7 @@ app.MapGet("/api/ping", (HttpContext context) =>
         authenticated = true
     });
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = IdentityConstants.BearerScheme })
+  .RequireRateLimiting("chat")
   .WithName("Ping")
   .WithSummary("Health check for authenticated users")
   .Produces(StatusCodes.Status200OK)

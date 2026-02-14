@@ -32,7 +32,6 @@ jobs:
         env:
           AI__Provider: Fake
           DOTNET_ASPIRE_ALLOW_UNSECURED_TRANSPORT: "true"
-        continue-on-error: true
 
       - name: Upload test results
         if: always()

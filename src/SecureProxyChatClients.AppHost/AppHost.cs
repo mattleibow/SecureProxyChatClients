@@ -16,6 +16,13 @@ if (!string.IsNullOrEmpty(aiProvider))
     server = server.WithEnvironment("AI__Provider", aiProvider);
 }
 
+// Allow configuring the seed user password (useful for integration tests)
+string? seedPassword = builder.Configuration["SeedUser:Password"];
+if (!string.IsNullOrEmpty(seedPassword))
+{
+    server = server.WithEnvironment("SeedUser__Password", seedPassword);
+}
+
 var client = builder.AddProject<Projects.SecureProxyChatClients_Client_Web>("client-web")
     .WithReference(server)
     .WaitFor(server);

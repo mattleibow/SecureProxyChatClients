@@ -231,6 +231,139 @@ GET /api/sessions/{id}/history
 
 ---
 
+## Play Endpoints
+
+All play endpoints require authentication.
+
+### Send Play Action (Non-Streaming)
+
+```
+POST /api/play
+```
+
+**Request Body:**
+```json
+{
+  "messages": [
+    { "role": "user", "content": "I draw my sword and charge the goblin" }
+  ],
+  "sessionId": "play-session-id",
+  "gameState": {
+    "health": 100,
+    "gold": 50,
+    "xp": 0,
+    "level": 1,
+    "inventory": []
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "messages": [
+    { "role": "assistant", "content": "You charge forward, blade gleaming..." }
+  ],
+  "sessionId": "play-session-id",
+  "gameState": { "health": 85, "gold": 55, "xp": 25, "level": 1 }
+}
+```
+
+### Send Play Action (Streaming via SSE)
+
+```
+POST /api/play/stream
+```
+
+**Request Body:** Same as `/api/play`
+
+**Response:** Server-Sent Events (SSE) stream with same event types as `/api/chat/stream`.
+
+### Consult the Oracle
+
+```
+POST /api/play/oracle
+```
+
+**Request Body:**
+```json
+{
+  "question": "What lies beyond the dark forest?",
+  "sessionId": "play-session-id"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "answer": "The Oracle speaks: Beyond the dark forest lies...",
+  "sessionId": "play-session-id"
+}
+```
+
+---
+
+## Memory Endpoints
+
+All memory endpoints require authentication. Memory stores persistent story/game data using vector similarity search.
+
+### Store Memory
+
+```
+POST /api/memory
+```
+
+**Request Body:**
+```json
+{
+  "content": "The ancient dragon Veltharis guards the Crystalspire",
+  "memoryType": "lore",
+  "sessionId": "play-session-id",
+  "metadata": {}
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": "memory-uuid",
+  "stored": true
+}
+```
+
+### Search Memories
+
+```
+POST /api/memory/search
+```
+
+**Request Body:**
+```json
+{
+  "query": "dragon",
+  "memoryType": "lore",
+  "sessionId": "play-session-id",
+  "limit": 5
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "results": [
+    {
+      "id": "memory-uuid",
+      "content": "The ancient dragon Veltharis guards the Crystalspire",
+      "score": 0.95
+    }
+  ]
+}
+```
+
+> **Note:** Memory type and session ID values must be alphanumeric (letters, digits, hyphens, underscores) to prevent injection attacks.
+
+---
+
 ## Health / Connectivity
 
 ### Ping (Authenticated)
@@ -262,13 +395,13 @@ GET /api/ping
 Returned when no valid bearer token is provided.
 
 ### Rate Limited (429)
-Returned when the per-user rate limit (30 requests/60 seconds) is exceeded.
+Returned when the per-user rate limit is exceeded. Chat/play/session/memory endpoints use a token bucket (30 tokens/60s default). Auth endpoints (login/register) use a fixed window (10 requests/minute per IP).
 
 ---
 
 ## Security Pipeline
 
-Every request to `/api/chat` and `/api/chat/stream` passes through:
+Every request to `/api/chat`, `/api/chat/stream`, `/api/play`, `/api/play/stream`, and `/api/play/oracle` passes through:
 
 1. **Authentication** — Bearer token validated via ASP.NET Core Identity
 2. **Rate limiting** — Fixed window per-user (30/60s default)
