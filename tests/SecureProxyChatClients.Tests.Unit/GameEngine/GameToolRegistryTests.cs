@@ -111,6 +111,7 @@ public class GameToolRegistryTests
         GameToolRegistry.ApplyToolResult(xp, state);
 
         Assert.Equal(2, state.Level);
+        Assert.Equal(10, state.Experience); // 110 - 100 (level 1 threshold) = 10 remainder
         Assert.Equal(110, state.MaxHealth);
         Assert.Equal(110, state.Health); // Healed on level up
     }
@@ -229,15 +230,17 @@ public class GameToolRegistryTests
     [Fact]
     public void ApplyToolResult_ExperienceResult_MultiLevelUp()
     {
-        // Level 1, threshold = 100. Award 250 XP.
-        // Code only levels up once per call, so expect level 2.
+        // Level 1 threshold = 100, Level 2 threshold = 200
+        // Award 350 XP: 350 >= 100 → level 2, XP=250. 250 >= 200 → level 3, XP=50. 50 < 300 → stop.
         var state = new PlayerState { Level = 1, Experience = 0, Health = 100, MaxHealth = 100 };
-        var xp = new ExperienceResult(250, "Boss defeated");
+        var xp = new ExperienceResult(350, "Boss defeated");
 
         GameToolRegistry.ApplyToolResult(xp, state);
 
-        Assert.True(state.Level >= 2);
-        Assert.Equal(250, state.Experience);
+        Assert.Equal(3, state.Level);
+        Assert.Equal(50, state.Experience);
+        Assert.Equal(120, state.MaxHealth); // 100 + 10 + 10 = 120
+        Assert.Equal(120, state.Health);
     }
 
     [Fact]

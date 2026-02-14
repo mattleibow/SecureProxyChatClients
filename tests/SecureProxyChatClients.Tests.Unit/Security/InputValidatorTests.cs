@@ -111,7 +111,7 @@ public class InputValidatorTests
     [Fact]
     public void Rejects_TooManyMessages()
     {
-        var messages = Enumerable.Range(0, 11).Select(i => UserMsg($"msg{i}")).ToArray();
+        var messages = Enumerable.Range(0, 51).Select(i => UserMsg($"msg{i}")).ToArray();
         var request = MakeRequest(messages);
         (bool isValid, string? error, _) = CreateValidator().ValidateAndSanitize(request);
 
@@ -122,8 +122,24 @@ public class InputValidatorTests
     [Fact]
     public void Accepts_MaxMessages()
     {
-        var messages = Enumerable.Range(0, 10).Select(i => UserMsg($"msg{i}")).ToArray();
+        var messages = Enumerable.Range(0, 50).Select(i => UserMsg($"msg{i}")).ToArray();
         var request = MakeRequest(messages);
+        (bool isValid, _, _) = CreateValidator().ValidateAndSanitize(request);
+
+        Assert.True(isValid);
+    }
+
+    [Fact]
+    public void Accepts_GameplayConversation_20Messages()
+    {
+        // Simulate a typical gameplay session: 10 user actions + 10 AI responses
+        var messages = new List<ChatMessageDto>();
+        for (int i = 0; i < 10; i++)
+        {
+            messages.Add(UserMsg($"I explore the area turn {i}"));
+            messages.Add(new ChatMessageDto { Role = "assistant", Content = $"You see a dark forest in turn {i}..." });
+        }
+        var request = MakeRequest([.. messages]);
         (bool isValid, _, _) = CreateValidator().ValidateAndSanitize(request);
 
         Assert.True(isValid);

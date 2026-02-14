@@ -46,6 +46,7 @@ public static class PlayEndpoints
         - Be fair but challenging. Not every action succeeds.
         - When a player takes damage, call ModifyHealth. When they find items, call GiveItem.
         - For any risky action (combat, stealth, persuasion), call RollCheck first
+        - When calling RollCheck, ALWAYS pass the player's actual stat value (from their stats in the game context) as the statValue parameter
         - Track the player's location with MovePlayer when they travel
         - Award XP for clever solutions and completing objectives
         
@@ -53,9 +54,9 @@ public static class PlayEndpoints
         - Use creatures from the AVAILABLE CREATURES list appropriate to the player's level
         - Describe the creature vividly using its emoji and description
         - Each combat round: player acts, then creature acts
-        - Use RollCheck for player attacks (stat: relevant weapon stat, DC: creature's AttackDc)
+        - Use RollCheck for player attacks (stat: relevant weapon stat, DC: creature's AttackDc, statValue: player's actual stat value)
         - On hit, call ModifyHealth on the creature (track in narrative). On miss, the creature attacks.
-        - Creature attacks: RollCheck for player defense (stat: dexterity, DC: 10 + creature level)
+        - Creature attacks: RollCheck for player defense (stat: dexterity, DC: 10 + creature level, statValue: player's DEX)
         - On failed defense, call ModifyHealth on the player (negative, amount: creature's Damage)
         - Award XP and Gold on creature defeat using AwardExperience and ModifyGold
         - Reference creature weaknesses — give hints to observant players

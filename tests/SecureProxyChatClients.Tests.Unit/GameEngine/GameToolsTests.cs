@@ -18,7 +18,8 @@ public class GameToolsTests
     [Fact]
     public void RollCheck_StrengthHasModifier()
     {
-        var result = GameTools.RollCheck("strength", 1, "test");
+        // STR 14 → modifier = (14-10)/2 = 2
+        var result = GameTools.RollCheck("strength", 1, "test", statValue: 14);
         Assert.Equal(2, result.Modifier);
         Assert.Equal(result.Roll + result.Modifier, result.Total);
     }
@@ -26,13 +27,15 @@ public class GameToolsTests
     [Fact]
     public void RollCheck_WisdomHasCorrectModifier()
     {
-        var result = GameTools.RollCheck("wisdom", 1, "test");
+        // WIS 12 → modifier = (12-10)/2 = 1
+        var result = GameTools.RollCheck("wisdom", 1, "test", statValue: 12);
         Assert.Equal(1, result.Modifier);
     }
 
     [Fact]
     public void RollCheck_UnknownStatHasZeroModifier()
     {
+        // Default statValue=10 → modifier = (10-10)/2 = 0
         var result = GameTools.RollCheck("cooking", 10, "test");
         Assert.Equal(0, result.Modifier);
     }
@@ -165,9 +168,10 @@ public class GameToolsTests
     [Fact]
     public void RollCheck_HandlesNullStat()
     {
+        // Default statValue=10 → modifier = 0; null stat falls back to "strength"
         var result = GameTools.RollCheck(null!, 10, "test");
         Assert.Equal("strength", result.Stat);
-        Assert.Equal(2, result.Modifier);
+        Assert.Equal(0, result.Modifier);
     }
 
     [Fact]
@@ -268,14 +272,16 @@ public class GameToolsTests
     [Fact]
     public void RollCheck_DexterityHasModifier2()
     {
-        var result = GameTools.RollCheck("dexterity", 1, "test");
+        // DEX 14 → modifier = (14-10)/2 = 2
+        var result = GameTools.RollCheck("dexterity", 1, "test", statValue: 14);
         Assert.Equal(2, result.Modifier);
     }
 
     [Fact]
     public void RollCheck_CharismaHasModifier1()
     {
-        var result = GameTools.RollCheck("charisma", 1, "test");
+        // CHA 12 → modifier = (12-10)/2 = 1
+        var result = GameTools.RollCheck("charisma", 1, "test", statValue: 12);
         Assert.Equal(1, result.Modifier);
     }
 
@@ -284,7 +290,7 @@ public class GameToolsTests
     {
         for (int i = 0; i < 1000; i++)
         {
-            var result = GameTools.RollCheck("strength", 10, "test");
+            var result = GameTools.RollCheck("strength", 10, "test", statValue: 14);
             if (result.CriticalSuccess)
             {
                 Assert.True(result.Success);
@@ -298,5 +304,29 @@ public class GameToolsTests
                 Assert.Equal(result.Total >= result.Difficulty, result.Success);
             }
         }
+    }
+
+    [Theory]
+    [InlineData(8, -1)]   // (8-10)/2 = -1
+    [InlineData(10, 0)]   // (10-10)/2 = 0
+    [InlineData(12, 1)]   // (12-10)/2 = 1
+    [InlineData(14, 2)]   // (14-10)/2 = 2
+    [InlineData(16, 3)]   // (16-10)/2 = 3
+    [InlineData(18, 4)]   // (18-10)/2 = 4
+    [InlineData(20, 5)]   // (20-10)/2 = 5
+    [InlineData(9, 0)]    // (9-10)/2 = 0 (C# integer division truncates toward zero)
+    [InlineData(11, 0)]   // (11-10)/2 = 0
+    public void RollCheck_StatValueProducesCorrectModifier(int statValue, int expectedModifier)
+    {
+        var result = GameTools.RollCheck("strength", 10, "test", statValue: statValue);
+        Assert.Equal(expectedModifier, result.Modifier);
+    }
+
+    [Fact]
+    public void RollCheck_DefaultStatValueIsZeroModifier()
+    {
+        // When no statValue is provided, default is 10 → modifier = 0
+        var result = GameTools.RollCheck("strength", 10, "test");
+        Assert.Equal(0, result.Modifier);
     }
 }

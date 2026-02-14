@@ -4,7 +4,7 @@ public sealed class SecurityOptions
 {
     public const string SectionName = "Security";
 
-    public int MaxMessages { get; set; } = 10;
+    public int MaxMessages { get; set; } = 50;
     public int MaxMessageLength { get; set; } = 4000;
     public int MaxTotalLength { get; set; } = 50000;
 

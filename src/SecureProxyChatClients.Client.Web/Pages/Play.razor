@@ -578,11 +578,21 @@ else
 
             if (!response.IsSuccessStatusCode)
             {
+                string detail = "";
+                try
+                {
+                    var body = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    detail = body?.Error ?? "";
+                }
+                catch { /* ignore parse errors */ }
+
                 errorMessage = (int)response.StatusCode switch
                 {
                     401 => "Session expired. Redirecting to login...",
                     429 => "Too many requests — please wait a moment before trying again.",
-                    _ => $"Error {(int)response.StatusCode}",
+                    _ => string.IsNullOrEmpty(detail)
+                        ? $"Error {(int)response.StatusCode}"
+                        : detail,
                 };
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
@@ -837,4 +847,9 @@ else
     }
 
     private sealed record LootCardDisplay(string Name, string Emoji, string Description);
+
+    private sealed class ErrorResponse
+    {
+        public string? Error { get; set; }
+    }
 }

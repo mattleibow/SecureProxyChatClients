@@ -18,21 +18,17 @@ public static class GameTools
     public static DiceCheckResult RollCheck(
         [Description("The stat being tested: strength, dexterity, wisdom, or charisma")] string stat,
         [Description("Difficulty class (1-20, where 10 is moderate)")] int difficulty,
-        [Description("Brief description of what the player is attempting")] string action)
+        [Description("Brief description of what the player is attempting")] string action,
+        [Description("The player's current value for the stat being tested (e.g., 14 for STR 14). Used to calculate the modifier.")] int statValue = 10)
     {
         stat = Clamp(stat, "strength").ToLowerInvariant();
         difficulty = Math.Clamp(difficulty, 1, 30);
         action = Clamp(action, "an action");
+        statValue = Math.Clamp(statValue, 1, 30);
 
         int d20 = Random.Shared.Next(1, 21);
-        int modifier = stat switch
-        {
-            "strength" => 2,
-            "dexterity" => 2,
-            "wisdom" => 1,
-            "charisma" => 1,
-            _ => 0,
-        };
+        // D&D-style modifier: (stat - 10) / 2, so STR 14 → +2, STR 10 → +0, STR 8 → -1
+        int modifier = (statValue - 10) / 2;
         int total = d20 + modifier;
         bool success = total >= difficulty;
         bool critical = d20 == 20;

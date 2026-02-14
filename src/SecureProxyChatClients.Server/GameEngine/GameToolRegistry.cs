@@ -71,8 +71,9 @@ public sealed class GameToolRegistry
 
             case ExperienceResult xp:
                 state.Experience += xp.Amount;
-                if (state.Experience >= state.Level * 100)
+                while (state.Experience >= state.Level * 100)
                 {
+                    state.Experience -= state.Level * 100;
                     state.Level++;
                     state.MaxHealth += 10;
                     state.Health = state.MaxHealth;
