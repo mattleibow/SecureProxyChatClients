@@ -11,6 +11,7 @@ public sealed class FakeChatClient : IChatClient
     public Queue<ChatResponse> Responses { get; } = new();
     public Queue<List<ChatResponseUpdate>> StreamingResponses { get; } = new();
     public List<IEnumerable<ChatMessage>> ReceivedMessages { get; } = [];
+    public List<ChatOptions?> ReceivedOptions { get; } = [];
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -18,6 +19,7 @@ public sealed class FakeChatClient : IChatClient
         CancellationToken cancellationToken = default)
     {
         ReceivedMessages.Add(messages);
+        ReceivedOptions.Add(options);
         ChatResponse response = Responses.Count > 0 ? Responses.Dequeue() : DefaultResponse;
         return Task.FromResult(response);
     }
@@ -28,6 +30,7 @@ public sealed class FakeChatClient : IChatClient
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ReceivedMessages.Add(messages);
+        ReceivedOptions.Add(options);
 
         if (StreamingResponses.Count > 0)
         {
@@ -48,6 +51,16 @@ public sealed class FakeChatClient : IChatClient
                 await Task.Delay(10, cancellationToken);
             }
         }
+    }
+
+    /// <summary>
+    /// Helper to enqueue a response containing FunctionCallContent for tool call simulation.
+    /// </summary>
+    public void EnqueueToolCallResponse(string callId, string toolName, IDictionary<string, object?>? arguments = null)
+    {
+        var functionCallContent = new FunctionCallContent(callId, toolName, arguments);
+        var message = new ChatMessage(ChatRole.Assistant, [functionCallContent]);
+        Responses.Enqueue(new ChatResponse(message));
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null) =>

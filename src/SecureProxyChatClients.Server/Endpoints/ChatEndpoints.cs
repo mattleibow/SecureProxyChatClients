@@ -5,12 +5,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.Services;
+using SecureProxyChatClients.Server.Tools;
 using SecureProxyChatClients.Shared.Contracts;
 
 namespace SecureProxyChatClients.Server.Endpoints;
 
 public static class ChatEndpoints
 {
+    private const int MaxToolCallRounds = 5;
+
     public static RouteGroupBuilder MapChatEndpoints(this IEndpointRouteBuilder endpoints)
     {
         RouteGroupBuilder group = endpoints.MapGroup("/api/chat")
@@ -32,6 +35,7 @@ public static class ChatEndpoints
         InputValidator inputValidator,
         ContentFilter contentFilter,
         SystemPromptService systemPromptService,
+        ServerToolRegistry serverToolRegistry,
         CancellationToken cancellationToken)
     {
         // Validate and sanitize input
@@ -46,17 +50,76 @@ public static class ChatEndpoints
         // Convert DTOs to MEAI ChatMessages
         List<ChatMessage> chatMessages = ConvertToChatMessages(messagesWithSystem);
 
-        // Forward to IChatClient
-        Microsoft.Extensions.AI.ChatResponse aiResponse =
-            await chatClient.GetResponseAsync(chatMessages, cancellationToken: cancellationToken);
+        // Build chat options with server tools
+        ChatOptions chatOptions = new()
+        {
+            Tools = [.. serverToolRegistry.Tools],
+        };
 
-        // Convert response
-        Shared.Contracts.ChatResponse response = ConvertToContractResponse(aiResponse);
+        // Tool execution loop
+        for (int round = 0; round < MaxToolCallRounds; round++)
+        {
+            Microsoft.Extensions.AI.ChatResponse aiResponse =
+                await chatClient.GetResponseAsync(chatMessages, chatOptions, cancellationToken);
 
-        // Filter response
-        response = contentFilter.FilterResponse(response);
+            // Check for function call content in the response
+            List<FunctionCallContent> functionCalls = aiResponse.Messages
+                .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
+                .ToList();
 
-        return Results.Ok(response);
+            if (functionCalls.Count == 0)
+            {
+                // No tool calls — return the final response
+                Shared.Contracts.ChatResponse response = ConvertToContractResponse(aiResponse);
+                response = contentFilter.FilterResponse(response);
+                return Results.Ok(response);
+            }
+
+            // Add assistant message with tool calls to conversation
+            chatMessages.AddRange(aiResponse.Messages);
+
+            // Process each function call
+            List<FunctionCallContent> clientToolCalls = [];
+            foreach (FunctionCallContent functionCall in functionCalls)
+            {
+                AIFunction? serverTool = serverToolRegistry.GetTool(functionCall.Name);
+                if (serverTool is not null)
+                {
+                    // Execute server tool and add result to messages
+                    AIFunctionArguments? args = functionCall.Arguments is { Count: > 0 }
+                        ? new AIFunctionArguments(functionCall.Arguments!)
+                        : null;
+                    object? result = await serverTool.InvokeAsync(args, cancellationToken);
+                    string resultJson = JsonSerializer.Serialize(result);
+                    chatMessages.Add(new ChatMessage(ChatRole.Tool,
+                    [
+                        new FunctionResultContent(functionCall.CallId, resultJson),
+                    ]));
+                }
+                else
+                {
+                    // Unknown tool — treat as client tool, return to caller
+                    clientToolCalls.Add(functionCall);
+                }
+            }
+
+            // If there are client tool calls, return them to the client
+            if (clientToolCalls.Count > 0)
+            {
+                Shared.Contracts.ChatResponse response = ConvertToContractResponseWithToolCalls(
+                    aiResponse, clientToolCalls);
+                response = contentFilter.FilterResponse(response);
+                return Results.Ok(response);
+            }
+
+            // All tool calls were server tools — loop to continue the conversation
+        }
+
+        // Max rounds exceeded — return whatever we have
+        return Results.Ok(new Shared.Contracts.ChatResponse
+        {
+            Messages = [new ChatMessageDto { Role = "assistant", Content = "Tool processing limit reached." }],
+        });
     }
 
     private static async Task HandleChatStreamAsync(
@@ -132,6 +195,47 @@ public static class ChatEndpoints
             {
                 Role = msg.Role.Value,
                 Content = msg.Text,
+            });
+        }
+
+        return new Shared.Contracts.ChatResponse { Messages = messages };
+    }
+
+    private static Shared.Contracts.ChatResponse ConvertToContractResponseWithToolCalls(
+        Microsoft.Extensions.AI.ChatResponse aiResponse,
+        List<FunctionCallContent> clientToolCalls)
+    {
+        List<ChatMessageDto> messages = [];
+
+        // Add any text content from the response
+        foreach (ChatMessage msg in aiResponse.Messages)
+        {
+            if (msg.Text is { Length: > 0 })
+            {
+                messages.Add(new ChatMessageDto
+                {
+                    Role = msg.Role.Value,
+                    Content = msg.Text,
+                });
+            }
+        }
+
+        // Add tool call messages for the client to handle
+        foreach (FunctionCallContent toolCall in clientToolCalls)
+        {
+            string argsJson = toolCall.Arguments is not null
+                ? JsonSerializer.Serialize(toolCall.Arguments)
+                : "{}";
+
+            messages.Add(new ChatMessageDto
+            {
+                Role = "tool_call",
+                Content = JsonSerializer.Serialize(new
+                {
+                    callId = toolCall.CallId,
+                    name = toolCall.Name,
+                    arguments = argsJson,
+                }),
             });
         }
 

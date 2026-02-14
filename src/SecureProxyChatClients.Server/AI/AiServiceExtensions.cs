@@ -1,5 +1,6 @@
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
+using SecureProxyChatClients.Server.Tools;
 
 namespace SecureProxyChatClients.Server.AI;
 
@@ -7,6 +8,9 @@ public static class AiServiceExtensions
 {
     public static IServiceCollection AddAiServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // Register the server tool registry
+        services.AddSingleton<ServerToolRegistry>();
+
         string provider = configuration.GetValue<string>("AI:Provider") ?? "Fake";
 
         switch (provider.ToLowerInvariant())
