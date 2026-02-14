@@ -1,10 +1,10 @@
 # Progress
 
-> **Last updated**: 2026-02-17
+> **Last updated**: 2026-02-14
 
-## ✅ ALL 11 PHASES COMPLETE + FEATURE EXPANSION + VISUAL POLISH
+## ✅ ALL 11 PHASES COMPLETE + SECURITY HARDENING + COMPREHENSIVE DOCS
 
-**Total test count: 253 unit + 7 integration + 25 Playwright = 285 tests**
+**Total test count: 269 unit + 7 integration + 25 Playwright = 301 tests**
 
 ### Planning & Design ✅
 - [x] Read and analyzed proposal (`docs/proposal.md`)
@@ -177,3 +177,33 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - [x] GiveItem tool updated with rarity parameter
 - [x] DiceCheckResult processing tracks streaks
 - [x] 3 new unit tests for streaks and rarity
+
+### Security Audit & Documentation (2026-02-14)
+
+#### 3-Model Security Audit (Gemini, Codex, Sonnet)
+- [x] **CRITICAL: Per-user rate limiting** — Rate limiter was global shared bucket. Fixed to partition by user ID/IP
+- [x] **HIGH: CSRF protection** — Removed cookie auth scheme from ALL API endpoints (Bearer-only)
+- [x] **HIGH: Play endpoint output filtering** — AI output unfiltered in PlayEndpoints. Added ContentFilter to HandlePlayAsync, HandlePlayStreamAsync, ConsultOracleAsync
+- [x] **MEDIUM: /api/ping auth** — Was using generic RequireAuthorization(). Fixed to Bearer-only
+- [x] **MEDIUM: Game tool input validation** — Added clamping/normalization to all GameTools methods
+- [x] **MEDIUM: Memory metadata validation** — Added alphanumeric pattern validation on MemoryType/SessionId
+- [x] **MEDIUM: ForwardedHeaders** — Added for correct client IP behind reverse proxies
+- [x] **LOW: Security headers** — Added Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy
+- [x] **LOW: Seed password** — Removed hardcoded "Test123!" fallback, generates random if not configured
+- [x] **CI: --no-build removed** — Updated CI workflow and testing docs per user policy
+- [x] 11 new input validation tests for GameTools (269 total unit tests)
+
+#### Comprehensive MS Learn Documentation
+- [x] `docs/architecture.md` — Architecture deep dive (332 lines): trust boundaries, data flow, security model, AI integration patterns
+- [x] `docs/security.md` — Security guide (414 lines): all 17 controls, deployment checklist (25 items)
+- [x] `docs/deployment.md` — Deployment guide (366 lines): prerequisites, configuration reference, production deployment
+- [x] `docs/extending.md` — Extension guide (515 lines): adding tools, agents, security policies, game engine
+- [x] `docs/testing.md` — Testing guide (481 lines): test strategy (4 layers), running tests, CI/CD
+
+#### Game Documentation
+- [x] `docs/game/player-handbook.md` — Player handbook (818 lines): complete gameplay guide with all stats, creatures, achievements, world map
+
+#### Security Controls Now at 19
+1-17: Original controls (see security.md)
+18: ForwardedHeaders for proxy IP resolution
+19: Game tool input validation/clamping
