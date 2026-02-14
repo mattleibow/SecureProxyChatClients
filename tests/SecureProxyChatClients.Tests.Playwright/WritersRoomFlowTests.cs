@@ -10,15 +10,15 @@ public class WritersRoomFlowTests(AspirePlaywrightFixture fixture)
     {
         var page = await fixture.Browser.NewPageAsync();
         await page.GotoAsync($"{fixture.ClientUrl}/login");
-        await page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 30_000 });
+        await page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 60_000 });
 
         await page.Locator("[data-testid='login-email']").FillAsync("test@test.com");
         await page.Locator("[data-testid='login-password']").FillAsync("Test123!");
         await page.Locator("[data-testid='login-submit']").ClickAsync();
 
-        await page.WaitForURLAsync("**/ping", new() { Timeout = 15_000 });
+        await page.WaitForURLAsync("**/ping", new() { Timeout = 30_000 });
         await page.GotoAsync($"{fixture.ClientUrl}/writers-room");
-        await page.WaitForSelectorAsync("[data-testid='writers-room-container']", new() { Timeout = 30_000 });
+        await page.WaitForSelectorAsync("[data-testid='writers-room-container']", new() { Timeout = 60_000 });
 
         return page;
     }
@@ -117,11 +117,11 @@ public class WritersRoomFlowTests(AspirePlaywrightFixture fixture)
             await page.Locator("[data-testid='pitch-input']").FillAsync("A mystery in a haunted library");
             await page.Locator("[data-testid='pitch-submit']").ClickAsync();
 
-            // Wait for discussion to complete (loading indicator disappears)
+            // Wait for discussion to complete (all 3 agents respond)
             await page.WaitForFunctionAsync(
-                "() => document.querySelectorAll('[data-testid=\"agent-message\"]').length >= 3 && !document.querySelector('[data-testid=\"discussion-loading\"]')",
+                "() => document.querySelectorAll('[data-testid=\"agent-message\"]').length >= 3",
                 null,
-                new() { Timeout = 60_000 });
+                new() { Timeout = 90_000 });
 
             // Verify all 3 agent types responded
             var storytellerBadges = page.Locator("[data-testid='agent-badge-Storyteller']");

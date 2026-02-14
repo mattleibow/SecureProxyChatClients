@@ -17,7 +17,16 @@
         You must <a href="/login">login</a> to begin your adventure.
     </div>
 }
-else if (playerState is null && !isLoading)
+else if (isLoading && playerState is null)
+{
+    <div class="text-center py-5" data-testid="play-loading">
+        <div class="spinner-border text-warning" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2 text-muted">Loading your adventure...</p>
+    </div>
+}
+else if (playerState is null)
 {
     <!-- Character Creation -->
     <div class="text-center mb-4" data-testid="character-creation">
@@ -544,6 +553,8 @@ else
     private void StartOver()
     {
         playerState = null;
+        isLoading = false;
+        isStreaming = false;
         storyMessages.Clear();
         gameEvents.Clear();
         sessionId = null;

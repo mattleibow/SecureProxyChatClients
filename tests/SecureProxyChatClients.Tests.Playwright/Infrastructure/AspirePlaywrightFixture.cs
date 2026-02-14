@@ -23,30 +23,32 @@ public sealed class AspirePlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var solutionRoot = FindSolutionRoot();
-
-        // Start server
-        _serverProcess = StartDotnetProcess(
-            Path.Combine(solutionRoot, "src", "SecureProxyChatClients.Server"),
-            ServerPort,
-            new Dictionary<string, string>
-            {
-                ["Client__Origin"] = $"http://localhost:{ClientPort}",
-                ["AI__Provider"] = "Fake",
-            });
-
-        // Start client
-        _clientProcess = StartDotnetProcess(
-            Path.Combine(solutionRoot, "src", "SecureProxyChatClients.Client.Web"),
-            ClientPort,
-            new Dictionary<string, string>());
-
-        // Wait for server to be ready
         using var httpClient = new HttpClient();
-        await WaitForHealthy(httpClient, $"{ServerUrl}/api/ping", TimeSpan.FromSeconds(30));
 
-        // Wait for client to be ready
-        await WaitForHealthy(httpClient, ClientUrl, TimeSpan.FromSeconds(30));
+        // Reuse already-running services if available, otherwise start new ones
+        if (!await IsAlreadyRunning(httpClient, $"{ServerUrl}/api/ping"))
+        {
+            var solutionRoot = FindSolutionRoot();
+            _serverProcess = StartDotnetProcess(
+                Path.Combine(solutionRoot, "src", "SecureProxyChatClients.Server"),
+                ServerPort,
+                new Dictionary<string, string>
+                {
+                    ["Client__Origin"] = $"http://localhost:{ClientPort}",
+                    ["AI__Provider"] = "Fake",
+                });
+            await WaitForHealthy(httpClient, $"{ServerUrl}/api/ping", TimeSpan.FromSeconds(30));
+        }
+
+        if (!await IsAlreadyRunning(httpClient, ClientUrl))
+        {
+            var solutionRoot = FindSolutionRoot();
+            _clientProcess = StartDotnetProcess(
+                Path.Combine(solutionRoot, "src", "SecureProxyChatClients.Client.Web"),
+                ClientPort,
+                new Dictionary<string, string>());
+            await WaitForHealthy(httpClient, ClientUrl, TimeSpan.FromSeconds(30));
+        }
 
         // Start Playwright
         _playwright = await Microsoft.Playwright.Playwright.CreateAsync();
@@ -54,6 +56,32 @@ public sealed class AspirePlaywrightFixture : IAsyncLifetime
         {
             Headless = true,
         });
+
+        // Warm up WASM by loading the client once before tests run
+        var warmupPage = await _browser.NewPageAsync();
+        try
+        {
+            await warmupPage.GotoAsync(ClientUrl);
+            await warmupPage.WaitForSelectorAsync("nav", new() { Timeout = 60_000 });
+        }
+        catch { /* best effort — tests will retry */ }
+        finally
+        {
+            await warmupPage.CloseAsync();
+        }
+    }
+
+    private static async Task<bool> IsAlreadyRunning(HttpClient httpClient, string url)
+    {
+        try
+        {
+            await httpClient.GetAsync(url);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task DisposeAsync()
@@ -63,6 +91,7 @@ public sealed class AspirePlaywrightFixture : IAsyncLifetime
 
         _playwright?.Dispose();
 
+        // Only kill processes we started (not pre-existing ones)
         KillProcess(_serverProcess);
         KillProcess(_clientProcess);
     }

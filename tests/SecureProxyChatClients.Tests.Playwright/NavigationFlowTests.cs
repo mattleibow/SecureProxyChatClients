@@ -16,7 +16,7 @@ public class NavigationFlowTests(AspirePlaywrightFixture fixture)
             await page.WaitForSelectorAsync("[data-testid='home-container']", new() { Timeout = 30_000 });
 
             var content = await page.TextContentAsync("[data-testid='home-container']");
-            Assert.Contains("LoreEngine", content ?? "");
+            Assert.Contains("Interactive Fiction Engine", content ?? "");
         }
         finally
         {

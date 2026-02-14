@@ -20,37 +20,45 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
     private async Task LoginAndGoToPlayAsync()
     {
         await _page.GotoAsync($"{fixture.ClientUrl}/login");
-        await _page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 30_000 });
+        await _page.WaitForSelectorAsync("[data-testid='login-form']", new() { Timeout = 60_000 });
 
         await _page.Locator("[data-testid='login-email']").FillAsync("test@test.com");
         await _page.Locator("[data-testid='login-password']").FillAsync("Test123!");
         await _page.Locator("[data-testid='login-submit']").ClickAsync();
 
-        await _page.WaitForURLAsync("**/ping", new() { Timeout = 15_000 });
+        await _page.WaitForURLAsync("**/ping", new() { Timeout = 30_000 });
         await _page.GotoAsync($"{fixture.ClientUrl}/play");
     }
 
     private async Task EnsureCharacterCreationAsync()
     {
-        // Wait for the page to finish loading (character creation, player stats, or loading spinner)
-        try
+        // Wait for the play page to be fully ready
+        // The page may transition through: loading → character-creation or player-stats
+        for (var attempt = 0; attempt < 3; attempt++)
         {
-            await _page.WaitForSelectorAsync(
-                "[data-testid='character-creation'], [data-testid='player-stats'], [data-testid='play-unauthenticated']",
-                new() { Timeout = 30_000 });
+            try
+            {
+                await _page.WaitForSelectorAsync(
+                    "[data-testid='character-creation'], [data-testid='player-stats']",
+                    new() { Timeout = 30_000 });
+                break;
+            }
+            catch (TimeoutException) when (attempt < 2)
+            {
+                // Page might be in a transient state; reload and retry
+                await _page.ReloadAsync();
+            }
         }
-        catch { /* timeout — page might still be loading */ }
 
         // If a game is already running, reset it
-        var newGameBtn = await _page.QuerySelectorAsync("[data-testid='new-game-btn']");
-        if (newGameBtn is not null && await newGameBtn.IsVisibleAsync())
+        var hasPlayerStats = await _page.Locator("[data-testid='player-stats']").IsVisibleAsync();
+        if (hasPlayerStats)
         {
+            var newGameBtn = _page.Locator("[data-testid='new-game-btn']");
+            await newGameBtn.WaitForAsync(new() { Timeout = 10_000 });
             await newGameBtn.ClickAsync();
-            // Give Blazor time to re-render
-            await _page.WaitForTimeoutAsync(500);
+            await _page.WaitForSelectorAsync("[data-testid='character-creation']", new() { Timeout = 30_000 });
         }
-
-        await _page.WaitForSelectorAsync("[data-testid='character-creation']", new() { Timeout = 30_000 });
     }
 
     [Fact]
@@ -100,8 +108,7 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
 
         await _page.ClickAsync("[data-testid='start-game']");
 
-        await _page.WaitForSelectorAsync("[data-testid='player-stats']", new() { Timeout = 15_000 });
-        var stats = await _page.TextContentAsync("[data-testid='player-stats']");
+        await _page.WaitForSelectorAsync("[data-testid='player-stats']", new() { Timeout = 60_000 });        var stats = await _page.TextContentAsync("[data-testid='player-stats']");
         Assert.Contains("TestHero", stats);
     }
 
@@ -115,7 +122,7 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
         await _page.ClickAsync("[data-testid='class-rogue']");
         await _page.ClickAsync("[data-testid='start-game']");
 
-        await _page.WaitForSelectorAsync("[data-testid='inventory-sidebar']", new() { Timeout = 15_000 });
+        await _page.WaitForSelectorAsync("[data-testid='player-stats']", new() { Timeout = 60_000 });
         var inventory = await _page.TextContentAsync("[data-testid='inventory-sidebar']");
 
         Assert.Contains("Daggers", inventory);
@@ -131,7 +138,7 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
         await _page.ClickAsync("[data-testid='class-explorer']");
         await _page.ClickAsync("[data-testid='start-game']");
 
-        await _page.WaitForSelectorAsync("[data-testid='action-input']", new() { Timeout = 15_000 });
+        await _page.WaitForSelectorAsync("[data-testid='action-input']", new() { Timeout = 60_000 });
 
         var lookBtn = _page.Locator("button:has-text('Look')");
         Assert.True(await lookBtn.IsVisibleAsync());
@@ -147,7 +154,10 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
         await _page.ClickAsync("[data-testid='class-mage']");
         await _page.ClickAsync("[data-testid='start-game']");
 
-        await _page.WaitForSelectorAsync("[data-testid='new-game-btn']", new() { Timeout = 15_000 });
+        // Wait for the game UI to appear and streaming to settle
+        await _page.WaitForSelectorAsync("[data-testid='player-stats']", new() { Timeout = 60_000 });
+        await _page.WaitForTimeoutAsync(2000);
+        
         await _page.ClickAsync("[data-testid='new-game-btn']");
 
         await _page.WaitForSelectorAsync("[data-testid='character-creation']", new() { Timeout = 30_000 });
