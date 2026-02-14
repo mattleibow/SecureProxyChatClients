@@ -80,6 +80,7 @@ public static class PlayEndpoints
         group.MapGet("/achievements", GetAchievementsAsync);
         group.MapPost("/oracle", ConsultOracleAsync);
         group.MapGet("/map", GetWorldMapAsync);
+        group.MapGet("/encounter", GetRandomEncounterAsync);
 
         return group;
     }
@@ -456,6 +457,38 @@ public static class PlayEndpoints
         var connections = WorldMap.GetConnections(state.CurrentLocation);
 
         return Results.Ok(new { map, connections, explored = state.VisitedLocations.Count, total = WorldMap.Locations.Count });
+    }
+
+    private static async Task<IResult> GetRandomEncounterAsync(
+        HttpContext httpContext,
+        IGameStateStore gameStateStore,
+        CancellationToken ct)
+    {
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
+
+        var state = await gameStateStore.GetOrCreatePlayerStateAsync(userId, ct);
+        var creature = Bestiary.GetEncounterCreature(state.Level);
+
+        return Results.Ok(new
+        {
+            creature.Name,
+            creature.Emoji,
+            creature.Level,
+            creature.Health,
+            creature.AttackDc,
+            creature.Damage,
+            creature.Description,
+            creature.Abilities,
+            creature.Weakness,
+            creature.XpReward,
+            creature.GoldDrop,
+            Prompt = $"[COMBAT ENCOUNTER: {creature.Emoji} {creature.Name} (Level {creature.Level})] " +
+                     $"A {creature.Name} appears! {creature.Description} " +
+                     $"It has {creature.Health} HP, attacks at DC {creature.AttackDc} for {creature.Damage} damage. " +
+                     $"Weakness: {creature.Weakness}. Abilities: {string.Join(", ", creature.Abilities)}. " +
+                     $"Resolve this combat encounter following the combat rules.",
+        });
     }
 
     private static async Task<IResult> ConsultOracleAsync(

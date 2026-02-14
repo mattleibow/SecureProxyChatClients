@@ -162,6 +162,8 @@ else if (playerState is not null)
                 <span class="text-muted mx-1">|</span>
                 <button class="btn btn-outline-warning btn-sm" @onclick="TriggerTwistOfFate"
                         disabled="@isStreaming" title="Something unexpected happens...">🌀 Twist</button>
+                <button class="btn btn-outline-danger btn-sm" @onclick="TriggerEncounter"
+                        disabled="@isStreaming" title="Fight a random creature!">⚔️ Fight</button>
                 <button class="btn btn-outline-info btn-sm" @onclick="ConsultOracle"
                         disabled="@isStreaming" title="Ask the Oracle for a cryptic hint...">👁️ Oracle</button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="ShowMap"
@@ -365,6 +367,31 @@ else
         public string Category { get; set; } = "";
     }
 
+    private async Task TriggerEncounter()
+    {
+        try
+        {
+            var encounter = await Http.GetFromJsonAsync<EncounterData>("/api/play/encounter");
+            if (encounter is not null)
+            {
+                gameEvents.Add(new GameEvent { Type = "Encounter", Data = JsonSerializer.SerializeToElement(new { Name = encounter.Name, Emoji = encounter.Emoji, Level = encounter.Level }) });
+                await SendActionInternal(encounter.Prompt);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No creatures nearby: {ex.Message}";
+        }
+    }
+
+    private sealed class EncounterData
+    {
+        public string Name { get; set; } = "";
+        public string Emoji { get; set; } = "";
+        public int Level { get; set; }
+        public string Prompt { get; set; } = "";
+    }
+
     private async Task ConsultOracle()
     {
         try
@@ -551,6 +578,7 @@ else
                 "ModifyHealth" => FormatHealthChange(evt.Data.Value),
                 "ModifyGold" => FormatGoldChange(evt.Data.Value),
                 "MovePlayer" => $"📍 Moved to: {evt.Data.Value.GetProperty("Location").GetString()}",
+                "Encounter" => $"⚔️ Encounter: {evt.Data.Value.GetProperty("Emoji").GetString()} {evt.Data.Value.GetProperty("Name").GetString()} (Lvl {evt.Data.Value.GetProperty("Level").GetInt32()})",
                 "Achievement" => $"🏆 Achievement Unlocked: {evt.Data.Value.GetProperty("Emoji").GetString()} {evt.Data.Value.GetProperty("Title").GetString()}",
                 _ => evt.Type,
             };

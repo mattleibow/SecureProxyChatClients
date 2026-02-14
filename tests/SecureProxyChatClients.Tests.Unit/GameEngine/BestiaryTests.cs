@@ -77,4 +77,18 @@ public class BestiaryTests
             prevLevel = creature.Level;
         }
     }
+
+    [Fact]
+    public void GetEncounterCreature_ReturnsCreatureWithinLevelRange()
+    {
+        var creature = Bestiary.GetEncounterCreature(3);
+        Assert.InRange(creature.Level, 2, 5);
+    }
+
+    [Fact]
+    public void GetEncounterCreature_AtLevel1_ReturnsLowLevelCreature()
+    {
+        var creature = Bestiary.GetEncounterCreature(1);
+        Assert.InRange(creature.Level, 1, 3);
+    }
 }

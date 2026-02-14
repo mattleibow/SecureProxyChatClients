@@ -95,4 +95,13 @@ public static class Bestiary
 
         return $"\n\nAVAILABLE CREATURES FOR ENCOUNTERS (player level {playerLevel}):\n{string.Join("\n", lines)}";
     }
+
+    /// <summary>
+    /// Pick a random creature appropriate for the player's level.
+    /// </summary>
+    public static Creature GetEncounterCreature(int playerLevel)
+    {
+        var available = GetCreaturesForLevel(playerLevel);
+        return available[Random.Shared.Next(available.Count)];
+    }
 }
