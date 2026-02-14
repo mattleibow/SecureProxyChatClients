@@ -290,3 +290,24 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - `2fecc51` — security: fix Codex review findings - process cleanup, header ordering, health checks
 - `21eeea3` — feat: incremental SSE streaming, smoke tests, Codex review fixes
 - `5e4b977` — security: fix middleware ordering, add case-variation content filter tests
+
+## Auth State & pgvector Fixes (2026-02-14 evening)
+
+### Critical Bugs Fixed
+1. **AuthState DI scope issue**: `IHttpClientFactory` creates handler instances in their own DI scope, so the `AuthState` injected into `AuthenticatedHttpMessageHandler` was a DIFFERENT instance than the one used by Razor components. Fix: made token field static so all instances share state.
+2. **NavMenu not re-rendering after login**: Added `AuthState.OnChange` event. NavMenu subscribes to it and calls `InvokeAsync(StateHasChanged)`. Implements `IDisposable` to unsubscribe.
+3. **pgvector not available**: AppHost used `postgres:17.5` image which lacks pgvector extension. Changed to `pgvector/pgvector:pg17`.
+4. **VectorDbContext not initialized**: Added `VectorDbContext.EnsureCreatedAsync()` to server startup.
+5. **500 errors on Play/Chat**: Root cause was `secrets.json` in repo root setting `AI:Provider=AzureOpenAI` with real but incorrectly-formatted endpoint. The `FakeChatClient` was never being used. Fixed by understanding config precedence: `secrets.json` → `appsettings.Development.json` → env vars.
+6. **GlobalExceptionHandler test failures**: Added null-check for `RequestServices` when resolving `IWebHostEnvironment`.
+
+### Key Learnings
+- In Blazor WASM, `IHttpClientFactory` handler scopes are separate from the main Blazor scope — use static fields for shared state
+- `secrets.json` in repo root is loaded by `Program.cs` and overrides `appsettings.Development.json` for AI provider config
+- Use `AI__Provider=Fake` env var to override for local testing without real Azure credentials
+- Standard `postgres` Docker image does NOT include pgvector — must use `pgvector/pgvector:pg17`
+
+### Screenshots & Walkthrough
+- 15 gameplay screenshots captured via Python Playwright (Chromium, headless)
+- Walkthrough document created: `docs/game/walkthrough.md`
+- Complete flow: registration → character creation → gameplay → combat → bestiary → journal → chat
