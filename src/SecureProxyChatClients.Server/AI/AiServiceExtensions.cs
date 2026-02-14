@@ -16,13 +16,15 @@ public static class AiServiceExtensions
         switch (provider.ToLowerInvariant())
         {
             case "fake":
-                services.AddSingleton<IChatClient>(new FakeChatClient());
+                services.AddSingleton<IChatClient>(sp =>
+                    new ObservabilityChatClient(new FakeChatClient()));
                 break;
 
             case "copilotcli":
                 string model = configuration.GetValue<string>("AI:CopilotCli:Model") ?? "gpt-5-mini";
                 services.AddSingleton<IChatClient>(sp =>
-                    new CopilotCliChatClient(sp.GetRequiredService<ILogger<CopilotCliChatClient>>(), model));
+                    new ObservabilityChatClient(
+                        new CopilotCliChatClient(sp.GetRequiredService<ILogger<CopilotCliChatClient>>(), model)));
                 break;
 
             case "azureopenai":
@@ -36,8 +38,8 @@ public static class AiServiceExtensions
                     new Uri(endpoint),
                     new System.ClientModel.ApiKeyCredential(apiKey));
 
-                IChatClient chatClient = azureClient.GetChatClient(deploymentName).AsIChatClient();
-                services.AddSingleton(chatClient);
+                IChatClient innerClient = azureClient.GetChatClient(deploymentName).AsIChatClient();
+                services.AddSingleton<IChatClient>(new ObservabilityChatClient(innerClient));
                 break;
 
             default:
