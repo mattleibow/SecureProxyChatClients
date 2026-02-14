@@ -172,6 +172,8 @@ else if (playerState is not null)
                         disabled="@isStreaming" title="Something unexpected happens...">🌀 Twist of Fate</button>
                 <button class="btn btn-outline-info btn-sm" @onclick="ConsultOracle"
                         disabled="@isStreaming" title="Ask the Oracle for a cryptic hint...">👁️ Oracle</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ShowMap"
+                        disabled="@isStreaming" title="View the world map">🗺️ Map</button>
             </div>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -397,6 +399,35 @@ else
     private sealed class OracleResponse
     {
         public string? Oracle { get; set; }
+    }
+
+    private async Task ShowMap()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<MapResponse>("/api/play/map");
+            if (result is not null)
+            {
+                storyMessages.Add(new ChatMessageDto
+                {
+                    Role = "assistant",
+                    Content = $"```ascii\n{result.Map}```\nYou can travel to: {string.Join(", ", result.Connections)}\n\n*({result.Explored}/{result.Total} locations explored)*",
+                });
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Map unavailable: {ex.Message}";
+        }
+    }
+
+    private sealed class MapResponse
+    {
+        public string Map { get; set; } = "";
+        public List<string> Connections { get; set; } = [];
+        public int Explored { get; set; }
+        public int Total { get; set; }
     }
 
     private async Task SendActionInternal(string action)

@@ -79,6 +79,7 @@ public static class PlayEndpoints
         group.MapGet("/twist", GetTwistOfFateAsync);
         group.MapGet("/achievements", GetAchievementsAsync);
         group.MapPost("/oracle", ConsultOracleAsync);
+        group.MapGet("/map", GetWorldMapAsync);
 
         return group;
     }
@@ -201,8 +202,10 @@ public static class PlayEndpoints
             : "";
 
         // Build game context for the DM
+        string destinations = string.Join(", ", WorldMap.GetConnections(playerState.CurrentLocation));
         string gameContext = BuildGameContext(playerState) + memoryContext
-            + Bestiary.FormatForDmPrompt(playerState.Level);
+            + Bestiary.FormatForDmPrompt(playerState.Level)
+            + $"\n\nAVAILABLE DESTINATIONS FROM {playerState.CurrentLocation}: {destinations}";
         var gameToolRegistry = new GameToolRegistry();
 
         // Session management
@@ -365,7 +368,8 @@ public static class PlayEndpoints
             : "";
         
         string gameContext = BuildGameContext(playerState) + memoryContext
-            + Bestiary.FormatForDmPrompt(playerState.Level);
+            + Bestiary.FormatForDmPrompt(playerState.Level)
+            + $"\n\nAVAILABLE DESTINATIONS FROM {playerState.CurrentLocation}: {string.Join(", ", WorldMap.GetConnections(playerState.CurrentLocation))}";
 
         // Session management
         string sessionId;
@@ -437,6 +441,21 @@ public static class PlayEndpoints
         string doneData = JsonSerializer.Serialize(new { sessionId });
         await httpContext.Response.WriteAsync($"event: done\ndata: {doneData}\n\n", CancellationToken.None);
         await httpContext.Response.Body.FlushAsync(CancellationToken.None);
+    }
+
+    private static async Task<IResult> GetWorldMapAsync(
+        HttpContext httpContext,
+        IGameStateStore gameStateStore,
+        CancellationToken ct)
+    {
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
+
+        var state = await gameStateStore.GetOrCreatePlayerStateAsync(userId, ct);
+        string map = WorldMap.GenerateMap(state.CurrentLocation, state.VisitedLocations);
+        var connections = WorldMap.GetConnections(state.CurrentLocation);
+
+        return Results.Ok(new { map, connections, explored = state.VisitedLocations.Count, total = WorldMap.Locations.Count });
     }
 
     private static async Task<IResult> ConsultOracleAsync(
