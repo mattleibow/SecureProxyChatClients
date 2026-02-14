@@ -38,17 +38,27 @@ public sealed class CopilotCliChatClient(ILogger<CopilotCliChatClient> logger, s
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(ProcessTimeout);
 
-            string output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
-            await process.WaitForExitAsync(timeoutCts.Token);
-
-            if (process.ExitCode != 0)
+            try
             {
-                string stderr = await process.StandardError.ReadToEndAsync(CancellationToken.None);
-                logger.LogWarning("Copilot CLI exited with code {ExitCode}: {StdErr}", process.ExitCode, stderr);
-            }
+                string output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+                await process.WaitForExitAsync(timeoutCts.Token);
 
-            string cleanOutput = StripCopilotFooter(output);
-            return new ChatResponse(new ChatMessage(ChatRole.Assistant, cleanOutput));
+                if (process.ExitCode != 0)
+                {
+                    string stderr = await process.StandardError.ReadToEndAsync(CancellationToken.None);
+                    logger.LogWarning("Copilot CLI exited with code {ExitCode}: {StdErr}", process.ExitCode, stderr);
+                }
+
+                string cleanOutput = StripCopilotFooter(output);
+                return new ChatResponse(new ChatMessage(ChatRole.Assistant, cleanOutput));
+            }
+            catch (OperationCanceledException)
+            {
+                // Kill the process tree on timeout to prevent orphaned processes
+                try { process.Kill(entireProcessTree: true); }
+                catch { /* Process may have already exited */ }
+                throw;
+            }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

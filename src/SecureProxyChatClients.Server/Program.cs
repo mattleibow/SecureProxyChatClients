@@ -71,7 +71,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // AI services
 builder.Services.AddAiServices(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddCheck<AiProviderHealthCheck>("ai-provider", tags: ["ready"]);
+    .AddCheck<AiProviderHealthCheck>("ai-provider", tags: ["ready"])
+    .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
 // Security services
 builder.Services.Configure<SecurityOptions>(
@@ -140,12 +141,12 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // Forwarded headers — ensures correct client IP behind reverse proxies (load balancers, Azure App Service)
-// IMPORTANT: In production, configure KnownProxies/KnownNetworks to match your infrastructure.
+// IMPORTANT: In production, configure KnownProxies/KnownIPNetworks to match your infrastructure.
 // Clearing defaults prevents trusting arbitrary X-Forwarded-For headers from untrusted sources.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 builder.WebHost.ConfigureKestrel(options =>
@@ -204,15 +205,16 @@ app.Use(async (context, next) =>
     }
 });
 
+app.UseExceptionHandler();
+
+// ForwardedHeaders must run before HTTPS redirect to resolve correct client IP/proto
+app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
     app.UseHsts();
 }
-
-app.UseExceptionHandler();
-
-app.UseForwardedHeaders();
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();

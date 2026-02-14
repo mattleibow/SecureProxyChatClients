@@ -78,9 +78,11 @@ Blazor WASM (Client)                  ASP.NET Core (Server / BFF)
    ```
    The Aspire dashboard opens automatically. From there, access the client and server endpoints.
 
-3. **Login** — Use the seeded test user:
+3. **Login** — In development, a seed user is created automatically:
    - **Email**: `test@test.com`
    - **Password**: `TestPassword1!`
+   
+   Or register a new account via the Register page (password requires 12+ chars, uppercase, lowercase, digit, and special character).
 
 4. **Try it out**:
    - **Play** → Create a character and explore an AI-driven RPG world

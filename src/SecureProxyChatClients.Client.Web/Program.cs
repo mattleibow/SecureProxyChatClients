@@ -17,6 +17,7 @@ var serverUrl = builder.Configuration.GetValue<string>("ServerUrl")
 builder.Services.AddHttpClient("ServerApi", client =>
     {
         client.BaseAddress = new Uri(serverUrl);
+        client.Timeout = TimeSpan.FromMinutes(5);
     })
     .AddHttpMessageHandler<AuthenticatedHttpMessageHandler>();
 

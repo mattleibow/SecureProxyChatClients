@@ -2,6 +2,14 @@ using Microsoft.JSInterop;
 
 namespace SecureProxyChatClients.Client.Web.Services;
 
+/// <summary>
+/// Client-side authentication state.
+/// SECURITY NOTE: Token is stored in sessionStorage for page-refresh survival.
+/// For production apps requiring higher security, consider a BFF (Backend-for-Frontend)
+/// pattern with HttpOnly/Secure/SameSite cookies, or use short-lived access tokens
+/// with a refresh token flow. sessionStorage is tab-scoped and cleared on tab close,
+/// which limits exposure compared to localStorage.
+/// </summary>
 public class AuthState(IJSRuntime jsRuntime)
 {
     private const string StorageKey = "auth_token";
