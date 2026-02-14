@@ -32,24 +32,25 @@ public class PlayFlowTests(AspirePlaywrightFixture fixture) : IAsyncLifetime
 
     private async Task EnsureCharacterCreationAsync()
     {
+        // Wait for the page to finish loading (character creation, player stats, or loading spinner)
+        try
+        {
+            await _page.WaitForSelectorAsync(
+                "[data-testid='character-creation'], [data-testid='player-stats'], [data-testid='play-unauthenticated']",
+                new() { Timeout = 30_000 });
+        }
+        catch { /* timeout — page might still be loading */ }
+
         // If a game is already running, reset it
         var newGameBtn = await _page.QuerySelectorAsync("[data-testid='new-game-btn']");
         if (newGameBtn is not null && await newGameBtn.IsVisibleAsync())
         {
             await newGameBtn.ClickAsync();
-            await _page.WaitForSelectorAsync("[data-testid='character-creation']", new() { Timeout = 30_000 });
-            return;
+            // Give Blazor time to re-render
+            await _page.WaitForTimeoutAsync(500);
         }
 
-        // Wait for either character creation or player stats to appear
-        await _page.WaitForSelectorAsync("[data-testid='character-creation'], [data-testid='player-stats']", new() { Timeout = 30_000 });
-
-        var playerStats = await _page.QuerySelectorAsync("[data-testid='player-stats']");
-        if (playerStats is not null && await playerStats.IsVisibleAsync())
-        {
-            await _page.ClickAsync("[data-testid='new-game-btn']");
-            await _page.WaitForSelectorAsync("[data-testid='character-creation']", new() { Timeout = 30_000 });
-        }
+        await _page.WaitForSelectorAsync("[data-testid='character-creation']", new() { Timeout = 30_000 });
     }
 
     [Fact]
