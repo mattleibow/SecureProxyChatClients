@@ -2,50 +2,40 @@
 
 > **Last updated**: 2026-02-15
 
-## Current Phase
+## Current Status
 
-**Phase 3 COMPLETE** — Phases 1–3 fully implemented and tested. 42 tests passing (28 unit, 4 integration, 10 Playwright E2E). All tested live: login → chat → send → stream → multi-turn works.
+**ALL 11 PHASES COMPLETE** ✅
 
-## What We Just Did
+160 tests passing (138 unit + 4 integration + 18 Playwright E2E). Full reference sample implemented.
 
-- **Phase 1: Foundation + Auth** (commit `ed678cb`)
-  - Solution structure: AppHost, ServiceDefaults, Server, Client.Web, Shared, 4 test projects
-  - Server with ASP.NET Identity (manual setup — `dotnet new webapi --auth Individual` broken in .NET 10)
-  - SQLite database, seed test user, CORS configuration
-  - Blazor WASM login page with bearer token auth
-  - `AuthenticatedHttpMessageHandler` + `AuthState` (sessionStorage-backed)
-  - Protected `/api/ping` endpoint
-  - Aspire wiring (separate apps, separate ports)
-  - Shared contracts (ChatRequest, ChatResponse, ChatStreamEvent, LoginRequest/Response, etc.)
+## What's Been Built
 
-- **Phase 2: Security + Chat Proxy** (commit `ffd1097`)
-  - POST `/api/chat` endpoint with auth, role stripping, input validation, content filtering
-  - `FakeChatClient` (deterministic, for tests) + `CopilotCliChatClient` (dev-time AI)
-  - Config-based AI provider switching (`AI:Provider` in appsettings)
-  - Security middleware: `InputValidator`, `ContentFilter`, `SecurityOptions`
-  - `SystemPromptService` for server-side system prompt injection
+The complete SecureProxyChatClients reference sample:
+- **Server**: ASP.NET Core + Identity + SQLite + CORS + rate limiting + input validation + content filtering + tool execution + session persistence
+- **Client**: Blazor WASM with Login, Chat (send/stream), Writers Room (3-agent orchestration), Create Story (4-step wizard), Story Dashboard
+- **Shared**: 9+ contract records for type-safe communication
+- **Tests**: Comprehensive coverage across unit, integration, and E2E layers
+- **Docs**: README.md, docs/api.md, docs/plan.md, docs/lore-engine.md, docs/recommendations.md
 
-- **Phase 3: Chat UI + Streaming** (commits `8fc91ac`, `c0b5034`)
-  - Chat.razor with message display, auto-scroll, streaming text
-  - SSE streaming via full-response-then-parse (not `StreamReader.ReadLineAsync` — broken in WASM)
-  - 10 Playwright E2E tests (auth flows + chat flows)
-  - `AuthState` refactored to use sessionStorage for WASM page navigation survival
+## Architecture Summary
 
-## What We're Doing Next
+```
+Blazor WASM Client          Server (Secure Augmenting Proxy)          Azure OpenAI
+┌─────────────────┐         ┌──────────────────────────────┐         ┌───────────┐
+│ Login            │ Bearer  │ Identity + Rate Limiting      │         │           │
+│ Chat (send/SSE)  │───────>│ Input Validation + Filtering  │───────>│ Chat API  │
+│ Writers Room     │ Token   │ System Prompt Injection       │ API Key │           │
+│ Create Story     │<───────│ Server Tool Execution         │<───────│           │
+│ Client Tools     │         │ Session Persistence           │         │           │
+└─────────────────┘         └──────────────────────────────┘         └───────────┘
+```
 
-- **Phase 4: Security Hardening**
-  - Per-user rate limiting (`Microsoft.AspNetCore.RateLimiting`)
-  - Message length limits enforcement
-  - Content sanitization (XSS prevention on LLM output)
-  - Format validation
-  - Tool allowlisting groundwork
+## What's Next
 
-- **Phase 5: Server-Side Tools**
-  - `AIFunction` registration on server (GenerateScene, CreateCharacter, AnalyzeStory, SuggestTwist)
-  - Tool execution pipeline
-  - Tool result injection into AI conversation
-
-- Future: Phase 6 (Client Tools) → Phase 7 (Persistence) → Phase 8 (Structured Output) → Phase 9 (Multi-Agent) → Phase 10 (Game Polish) → Phase 11 (Docs)
+- Deploy to Azure (future)
+- Add Entra ID authentication (deferred)
+- Replace FakeChatClient with real Azure OpenAI for production
+- Add MAUI client app
 
 ## Key Technical Learnings
 

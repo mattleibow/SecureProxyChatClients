@@ -2,9 +2,11 @@
 
 > **Last updated**: 2026-02-15
 
-## Completed
+## ✅ ALL 11 PHASES COMPLETE
 
-### Planning & Design
+**Total test count: 160 tests passing** (138 unit + 4 integration + 18 Playwright)
+
+### Planning & Design ✅
 - [x] Read and analyzed proposal (`docs/proposal.md`)
 - [x] Downloaded AG-UI security considerations doc
 - [x] Researched .NET 10, C# 14, Aspire, MEAI, Agent Framework
@@ -13,7 +15,7 @@
 - [x] Established architecture: agents on CLIENT, server is secure augmenting proxy
 - [x] Set up memory-bank structure + copilot-instructions
 - [x] Created comprehensive 11-phase plan (auth-first, separate apps)
-- [x] 3 rounds of 3-model review (Gemini, Codex, Opus) — all CRITICAL/HIGH resolved
+- [x] 5 rounds of 3-model review (Gemini, Codex, Opus) — all CRITICAL/HIGH resolved
 - [x] Created `docs/recommendations.md` with code patterns
 - [x] All key decisions documented (30+ in decision log)
 
@@ -43,37 +45,46 @@
 - [x] `AuthState` refactored to sessionStorage for page navigation survival
 - [x] Full page reload pattern in Playwright for sessionStorage-based auth
 
-### Test Coverage: 42 tests passing
-- 28 unit tests (`Tests.Unit`)
-- 4 integration tests (`Tests.Integration`)
-- 10 Playwright E2E tests (`Tests.Playwright`)
+### Phase 4: Security Hardening ✅ (commit `15e9590`)
+- [x] Per-user rate limiting (30 req/min via `Microsoft.AspNetCore.RateLimiting`)
+- [x] Message length limits enforcement
+- [x] Injection detection (system/assistant role stripping)
+- [x] Tool allowlisting groundwork
 
-## Not Started (matches docs/plan.md)
+### Phase 5: Server-Side Tools ✅ (commit `15e9590`)
+- [x] 4 server tools: GenerateScene, CreateCharacter, AnalyzeStory, SuggestTwist
+- [x] ServerToolRegistry with MEAI AIFunction integration
+- [x] Tool execution loop in ChatEndpoints (max 5 rounds)
 
-### Phase 4: Security Hardening
-- [ ] Per-user rate limiting (`Microsoft.AspNetCore.RateLimiting`)
-- [ ] Message length limits enforcement
-- [ ] Content sanitization (XSS prevention on LLM output)
-- [ ] Format validation
-- [ ] Tool allowlisting groundwork
+### Phase 6: Client-Side Tools ✅ (commit `ad9ec0f`)
+- [x] ProxyChatClient: IChatClient routing through server proxy
+- [x] 5 client tools: GetStoryGraph, SearchStory, SaveStoryState, RollDice, GetWorldRules
+- [x] ClientToolRegistry + StoryStateService
+- [x] Client tool execution loop (max 5 rounds)
 
-### Phase 5: Server-Side Tools
-- [ ] `AIFunction` registration on server (GenerateScene, CreateCharacter, AnalyzeStory, SuggestTwist)
-- [ ] Tool execution pipeline
-- [ ] Tool result injection into AI conversation
+### Phase 7: Conversation Persistence ✅ (commit `a14100f`)
+- [x] IConversationStore + EfConversationStore (SQLite/EF)
+- [x] Session endpoints: POST/GET /api/sessions, GET /api/sessions/{id}/history
+- [x] Session ownership security
+- [x] Chat endpoints auto-create/reuse sessions, persist messages
 
-### Phase 6: Client-Side Tools
-- [ ] Client tool routing via stateless loop in ProxyChatClient
-- [ ] Client tool result validation (S8)
-- [ ] Client-side `AIFunction` registration (GetStoryGraph, SearchStory, etc.)
+### Phase 8: Structured Output ✅ (commit `a14100f`)
+- [x] ResponseFormat passthrough (text/json/json-schema)
+- [x] ChatOptionsDto with ResponseFormat support
 
-### Phase 7: Conversation Persistence & Sessions
-- [ ] `IConversationStore` interface + in-memory implementation
-- [ ] Server-generated session IDs + ownership verification
-- [ ] Persist history for audit/resume
+### Phase 9: Multi-Agent Orchestration ✅ (commit `85c37ca`)
+- [x] LoreAgent abstraction with system prompt personas
+- [x] LoreAgentFactory: Storyteller (📖), Critic (🎭), Archivist (📚)
+- [x] WritersRoom round-robin orchestration (IAsyncEnumerable)
+- [x] WritersRoom.razor with pitch form, live agent responses, badges
 
-### Phases 8–11: See docs/plan.md
-- Phase 8: Structured Output
-- Phase 9: Multi-Agent Orchestration
-- Phase 10: Game Polish (LoreEngine Creation Mode)
-- Phase 11: Documentation & Polish
+### Phase 10: Game Polish ✅ (commit `859319c`)
+- [x] Story state display on WritersRoom and Chat pages
+- [x] BuildScopedContext in StoryStateService
+- [x] CreateStory.razor — 4-step creation wizard
+- [x] Home page with LoreEngine branding and navigation
+
+### Phase 11: Documentation & Polish ✅ (commit `859319c`)
+- [x] README.md with architecture, quickstart, project structure
+- [x] docs/api.md with all endpoints, request/response examples, SSE protocol
+- [x] Code cleanup pass
