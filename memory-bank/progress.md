@@ -123,3 +123,35 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - [x] Increased timeouts and added retry logic for WASM hydration
 - [x] **232 unit + 4 integration passing consistently**
 - [x] **29-30/30 Playwright tests passing** (1 intermittent due to test ordering)
+
+### Comprehensive Security Review & Hardening ✅ (3 rounds, 3 models)
+- [x] **Round 1**: CSP headers, HSTS, secure cookies, token bucket rate limiting, HTML injection detection, error disclosure fixes, request timeouts, API metadata, EF improvements (commit `9bb1dcf`)
+- [x] **Round 2**: Global exception handler (ProblemDetails), ObservabilityChatClient (AI metrics: latency/tokens/errors), AI health check, CI pipeline, memory input validation, client 401 handling (commits `f4acb7e`, `e4cd4cf`)
+- [x] **Round 3**: Fixed duplicate audit middleware, rate limiter zero-division guard, ContentFilter single/unquoted handlers, session ID validation in PlayEndpoints (commit `5938c56`)
+- [x] **Security features verified by 3 models**: Claude Sonnet 4, Gemini 3 Pro, GPT-5.3-Codex
+- [x] All 3 models gave APPROVED status
+- [x] **253 unit tests passing, 0 errors, 0 warnings**
+
+#### Security Feature Inventory:
+- CSP headers (script, style, img, connect directives)
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: DENY
+- Referrer-Policy: strict-origin-when-cross-origin
+- Permissions-Policy (camera, mic, geo blocked)
+- HSTS enforcement in production
+- Secure cookies (HttpOnly, Secure, SameSite=Strict)
+- Password policy (8+ chars, digit required, lockout after 5 attempts)
+- Token bucket rate limiting with burst handling
+- 1MB request body size limit
+- 5-minute AI call timeout
+- Input validation (length, injection patterns, HTML/script detection)
+- Role stripping (system messages removed from user input)
+- Tool allowlist validation
+- Content filter (output XSS sanitization: scripts, iframes, event handlers, javascript: protocol)
+- Global exception handler (ProblemDetails, no internal detail leakage)
+- Security audit logging (401/403 events)
+- AI provider health check
+- AI observability metrics (prompt/completion tokens, latency, error rate)
+- Game state concurrency control (optimistic locking with version)
+- Session ownership checks (IDOR prevention)
+- Client-side 401 auto-logout
