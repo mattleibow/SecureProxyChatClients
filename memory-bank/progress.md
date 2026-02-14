@@ -207,3 +207,39 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 1-17: Original controls (see security.md)
 18: ForwardedHeaders for proxy IP resolution
 19: Game tool input validation/clamping
+
+#### Second Security Audit Round (2026-02-14)
+- [x] **CopilotCliChatClient: ArgumentList** — Replaced string interpolation with ProcessStartInfo.ArgumentList to prevent shell injection
+- [x] **CopilotCliChatClient: --allow-all-tools removed** — Unsafe flag for untrusted-prompt proxy
+- [x] **TwistOfFate: Random.Shared** — Replaced private static Random with thread-safe Random.Shared
+- [x] **MIT LICENSE** — Added LICENSE file for MS Learn compliance
+- [x] **PWA manifest** — Created manifest.json, linked in index.html
+- [x] **Health checks config-based** — ServiceDefaults checks `HealthChecks:Enabled` config instead of dev-only
+- [x] **Chat stream ContentFilter** — Added ContentFilter to SSE text-delta emissions in HandleChatStreamAsync
+- [x] **Auth rate limiting** — Added "auth" policy (10 req/min per IP) on Identity endpoints (/login, /register)
+- [x] **/api/ping rate limiting** — Added RequireRateLimiting("chat") to /api/ping endpoint
+- [x] **Integration tests Bearer auth** — Switched from cookie-based to Bearer token auth
+- [x] **AppHost SeedUser:Password** — Propagates seed password to server for test login
+- [x] **HTTPS redirect production-only** — Moved UseHttpsRedirection() inside !IsDevelopment() block
+- [x] **CI continue-on-error removed** — Integration tests must pass
+- [x] **JS eval removed** — Play.razor scrollToBottom uses named function instead of eval()
+- [x] **Client HTTPS default** — Changed ServerUrl default from http:// to https://
+- [x] **api.md complete** — Documented all /api/play/* and /api/memory/* endpoints with correct routes
+- [x] **security.md accuracy** — Fixed HTTPS scope, removed stale cookie hardening section, updated rate limit scope
+- [x] **secrets.json.template** — Template file with placeholder values for reference
+- [x] **Dead code removed** — Removed commented-out cookie hardening from Program.cs
+
+#### Test Results
+- 269 unit tests passing
+- 7 integration tests passing (all using Bearer auth)
+- All previous Playwright and smoke tests remain
+
+#### 3-Model Review Status
+- **Gemini**: ✅ APPROVED (final review)
+- **Codex**: Issues addressed (JS eval, docs, HTTPS, security.md)
+- **Sonnet**: Issues addressed (secrets template, dependency warning)
+
+#### Git Commits (this session)
+- `8c92066` — security: fix argument injection, Random.Shared, auth rate limiting, add LICENSE
+- `7cbe9dc` — security: fix integration tests, remove --allow-all-tools, complete api docs
+- `4d30fa8` — security: remove JS eval, fix docs accuracy, enforce HTTPS defaults
