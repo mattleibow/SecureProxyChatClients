@@ -659,9 +659,8 @@ else
         if (evt.Data is null) return "";
         try
         {
-            if (evt.Type.Contains("RollCheck", StringComparison.OrdinalIgnoreCase) &&
-                evt.Data.Value.TryGetProperty("Success", out var s))
-                return s.GetBoolean() ? "success" : "failure";
+            if (evt.Type.Contains("RollCheck", StringComparison.OrdinalIgnoreCase))
+                return GetBool(evt.Data.Value, "Success") ? "success" : "failure";
         }
         catch { }
         return "";
@@ -675,41 +674,67 @@ else
             return evt.Type switch
             {
                 "RollCheck" => FormatDiceRoll(evt.Data.Value),
-                "GiveItem" => $"📦 Found: {evt.Data.Value.GetProperty("Name").GetString()}",
-                "TakeItem" => $"📦 Lost: {evt.Data.Value.GetProperty("Name").GetString()}",
+                "GiveItem" => $"📦 Found: {GetStr(evt.Data.Value, "Name")}",
+                "TakeItem" => $"📦 Lost: {GetStr(evt.Data.Value, "Name")}",
                 "ModifyHealth" => FormatHealthChange(evt.Data.Value),
                 "ModifyGold" => FormatGoldChange(evt.Data.Value),
-                "MovePlayer" => $"📍 Moved to: {evt.Data.Value.GetProperty("Location").GetString()}",
-                "Encounter" => $"⚔️ Encounter: {evt.Data.Value.GetProperty("Emoji").GetString()} {evt.Data.Value.GetProperty("Name").GetString()} (Lvl {evt.Data.Value.GetProperty("Level").GetInt32()})",
-                "Achievement" => $"🏆 Achievement Unlocked: {evt.Data.Value.GetProperty("Emoji").GetString()} {evt.Data.Value.GetProperty("Title").GetString()}",
+                "MovePlayer" => $"📍 Moved to: {GetStr(evt.Data.Value, "Location")}",
+                "Encounter" => $"⚔️ Encounter: {GetStr(evt.Data.Value, "Emoji")} {GetStr(evt.Data.Value, "Name")} (Lvl {GetInt(evt.Data.Value, "Level")})",
+                "Achievement" => $"🏆 Achievement Unlocked: {GetStr(evt.Data.Value, "Emoji")} {GetStr(evt.Data.Value, "Title")}",
                 _ => evt.Type,
             };
         }
         catch { return evt.Type; }
     }
 
+    private static int GetInt(JsonElement data, string name)
+    {
+        if (data.TryGetProperty(name, out var val)) return val.GetInt32();
+        // Try camelCase
+        string camel = char.ToLowerInvariant(name[0]) + name[1..];
+        if (data.TryGetProperty(camel, out val)) return val.GetInt32();
+        throw new KeyNotFoundException(name);
+    }
+
+    private static bool GetBool(JsonElement data, string name)
+    {
+        if (data.TryGetProperty(name, out var val)) return val.GetBoolean();
+        string camel = char.ToLowerInvariant(name[0]) + name[1..];
+        if (data.TryGetProperty(camel, out val)) return val.GetBoolean();
+        return false;
+    }
+
+    private static string? GetStr(JsonElement data, string name)
+    {
+        if (data.TryGetProperty(name, out var val)) return val.GetString();
+        string camel = char.ToLowerInvariant(name[0]) + name[1..];
+        if (data.TryGetProperty(camel, out val)) return val.GetString();
+        return null;
+    }
+
     private static string FormatDiceRoll(JsonElement data)
     {
-        int roll = data.GetProperty("Roll").GetInt32();
-        int total = data.GetProperty("Total").GetInt32();
-        int dc = data.GetProperty("Difficulty").GetInt32();
-        bool success = data.GetProperty("Success").GetBoolean();
-        bool crit = data.TryGetProperty("CriticalSuccess", out var cs) && cs.GetBoolean();
-        bool critFail = data.TryGetProperty("CriticalFailure", out var cf) && cf.GetBoolean();
+        int roll = GetInt(data, "Roll");
+        int total = GetInt(data, "Total");
+        int dc = GetInt(data, "Difficulty");
+        bool success = GetBool(data, "Success");
+        bool crit = GetBool(data, "CriticalSuccess");
+        bool critFail = GetBool(data, "CriticalFailure");
 
         string result = crit ? "CRITICAL SUCCESS!" : critFail ? "CRITICAL FAILURE!" : success ? "Success" : "Failure";
-        return $"🎲 d20={roll} +{data.GetProperty("Modifier").GetInt32()} = {total} vs DC {dc} → {result}";
+        return $"🎲 d20={roll} +{GetInt(data, "Modifier")} = {total} vs DC {dc} → {result}";
     }
 
     private static string FormatHealthChange(JsonElement data)
     {
-        int amount = data.GetProperty("Amount").GetInt32();
-        return amount >= 0 ? $"💚 +{amount} HP ({data.GetProperty("Source").GetString()})" : $"💔 {amount} HP ({data.GetProperty("Source").GetString()})";
+        int amount = GetInt(data, "Amount");
+        string source = GetStr(data, "Source") ?? "unknown";
+        return amount >= 0 ? $"💚 +{amount} HP ({source})" : $"💔 {amount} HP ({source})";
     }
 
     private static string FormatGoldChange(JsonElement data)
     {
-        int amount = data.GetProperty("Amount").GetInt32();
+        int amount = GetInt(data, "Amount");
         return amount >= 0 ? $"💰 +{amount} gold" : $"💰 {amount} gold";
     }
 
@@ -730,26 +755,26 @@ else
             switch (evt.Type)
             {
                 case "RollCheck" when evt.Data is not null:
-                    int roll = evt.Data.Value.GetProperty("Roll").GetInt32();
-                    int total = evt.Data.Value.GetProperty("Total").GetInt32();
-                    int dc = evt.Data.Value.GetProperty("Difficulty").GetInt32();
-                    bool success = evt.Data.Value.GetProperty("Success").GetBoolean();
-                    bool crit = evt.Data.Value.TryGetProperty("CriticalSuccess", out var cs) && cs.GetBoolean();
-                    bool critFail = evt.Data.Value.TryGetProperty("CriticalFailure", out var cf) && cf.GetBoolean();
+                    int roll = GetInt(evt.Data.Value, "Roll");
+                    int total = GetInt(evt.Data.Value, "Total");
+                    int dc = GetInt(evt.Data.Value, "Difficulty");
+                    bool success = GetBool(evt.Data.Value, "Success");
+                    bool crit = GetBool(evt.Data.Value, "CriticalSuccess");
+                    bool critFail = GetBool(evt.Data.Value, "CriticalFailure");
                     activeDiceRoll = new DiceRollDisplay(roll, total, dc, success, crit, critFail);
                     _ = DismissDiceRollAfterDelay();
                     break;
 
                 case "ModifyHealth" when evt.Data is not null:
-                    int amount = evt.Data.Value.GetProperty("Amount").GetInt32();
+                    int amount = GetInt(evt.Data.Value, "Amount");
                     playContainerClass = amount < 0 ? "shake-damage" : "glow-heal";
                     _ = ClearEffectAfterDelay();
                     break;
 
                 case "GiveItem" when evt.Data is not null:
-                    string itemName = evt.Data.Value.GetProperty("Name").GetString() ?? "Item";
-                    string itemEmoji = evt.Data.Value.TryGetProperty("Emoji", out var em) ? em.GetString() ?? "📦" : "📦";
-                    string itemDesc = evt.Data.Value.TryGetProperty("Description", out var desc) ? desc.GetString() ?? "" : "";
+                    string itemName = GetStr(evt.Data.Value, "Name") ?? "Item";
+                    string itemEmoji = GetStr(evt.Data.Value, "Emoji") ?? "📦";
+                    string itemDesc = GetStr(evt.Data.Value, "Description") ?? "";
                     activeLootCard = new LootCardDisplay(itemName, itemEmoji, itemDesc);
                     _ = DismissLootAfterDelay();
                     break;

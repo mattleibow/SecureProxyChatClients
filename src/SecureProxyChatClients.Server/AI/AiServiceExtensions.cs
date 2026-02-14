@@ -16,10 +16,7 @@ public static class AiServiceExtensions
         switch (provider.ToLowerInvariant())
         {
             case "fake":
-                var fakeChatClient = new FakeChatClient();
-                fakeChatClient.Responses.Enqueue(
-                    new ChatResponse(new ChatMessage(ChatRole.Assistant, "This is a fake response.")));
-                services.AddSingleton<IChatClient>(fakeChatClient);
+                services.AddSingleton<IChatClient>(new FakeChatClient());
                 break;
 
             case "copilotcli":

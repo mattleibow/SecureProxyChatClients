@@ -83,4 +83,72 @@ public class FakeChatClientTests
 
         Assert.Equal(2, client.ReceivedMessages.Count);
     }
+
+    [Fact]
+    public async Task GetResponseAsync_WithTools_GeneratesRollCheckForAttack()
+    {
+        var client = new FakeChatClient();
+        var tools = new SecureProxyChatClients.Server.GameEngine.GameToolRegistry();
+        var options = new ChatOptions { Tools = [.. tools.Tools] };
+
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, "You are a DM"),
+            new(ChatRole.User, "I attack the goblin with my sword"),
+        };
+
+        ChatResponse response = await client.GetResponseAsync(messages, options);
+
+        var functionCalls = response.Messages
+            .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
+            .ToList();
+
+        Assert.Single(functionCalls);
+        Assert.Equal("RollCheck", functionCalls[0].Name);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_WithTools_GeneratesRollCheckForSearch()
+    {
+        var client = new FakeChatClient();
+        var tools = new SecureProxyChatClients.Server.GameEngine.GameToolRegistry();
+        var options = new ChatOptions { Tools = [.. tools.Tools] };
+
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, "You are a DM"),
+            new(ChatRole.User, "I search the chest for traps"),
+        };
+
+        ChatResponse response = await client.GetResponseAsync(messages, options);
+
+        var functionCalls = response.Messages
+            .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
+            .ToList();
+
+        Assert.Single(functionCalls);
+        Assert.Equal("RollCheck", functionCalls[0].Name);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_WithTools_NoToolCallForNormalChat()
+    {
+        var client = new FakeChatClient();
+        var tools = new SecureProxyChatClients.Server.GameEngine.GameToolRegistry();
+        var options = new ChatOptions { Tools = [.. tools.Tools] };
+
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, "You are a DM"),
+            new(ChatRole.User, "Tell me about the village"),
+        };
+
+        ChatResponse response = await client.GetResponseAsync(messages, options);
+
+        var functionCalls = response.Messages
+            .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
+            .ToList();
+
+        Assert.Empty(functionCalls);
+    }
 }
