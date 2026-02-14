@@ -243,3 +243,25 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - `8c92066` — security: fix argument injection, Random.Shared, auth rate limiting, add LICENSE
 - `7cbe9dc` — security: fix integration tests, remove --allow-all-tools, complete api docs
 - `4d30fa8` — security: remove JS eval, fix docs accuracy, enforce HTTPS defaults
+- `10daa91` — security: use Random.Shared in RollDiceTool
+- `83ebc0b` — security: harden password policy, fix IP spoofing, stream XSS, middleware order
+- `7d2a519` — security: CharacterClass allowlist, AI call timeouts, seed gating
+- `0d9d239` — test: add play and session integration tests (15 total)
+- `df4e309` — docs: fix documentation accuracy, update README security controls
+- `ebce176` — security: add final ContentFilter to PlayEndpoints stream persistence
+
+#### Security Controls Now at 20
+1-17: Original controls
+18: ForwardedHeaders (KnownNetworks/KnownProxies cleared)
+19: Game tool input validation/clamping
+20: CharacterClass allowlist + AI call timeouts
+
+#### 3-Model Review Status (Latest)
+- **Gemini**: ✅ APPROVED (comprehensive review)
+- **Codex**: All code-level fixes verified, final split-XSS fix applied
+- **Sonnet**: ✅ All items verified (secrets.json confirmed NOT tracked)
+
+#### Test Summary
+- 271 unit tests passing
+- 15 integration tests passing (chat, auth, play, session)
+- All Playwright and smoke tests remain
