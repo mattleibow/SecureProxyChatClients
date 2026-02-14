@@ -123,16 +123,29 @@ public class AchievementsTests
     }
 
     [Fact]
-    public void CheckAchievements_3Items_EarnsFirstLoot()
+    public void CheckAchievements_4Items_EarnsFirstLoot()
     {
-        // "first-loot" triggers when Inventory.Count > 2
+        // "first-loot" triggers when Inventory.Count > 3 (chars start with 3 items)
+        var state = new PlayerState();
+        for (int i = 0; i < 4; i++)
+            state.Inventory.Add(new InventoryItem { Name = $"Item {i}" });
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.Contains(result, a => a.Id == "first-loot");
+    }
+
+    [Fact]
+    public void CheckAchievements_3Items_NoFirstLoot()
+    {
+        // Characters start with 3 items, so 3 items should NOT trigger first-loot
         var state = new PlayerState();
         for (int i = 0; i < 3; i++)
             state.Inventory.Add(new InventoryItem { Name = $"Item {i}" });
 
         var result = Achievements.CheckAchievements(state, new HashSet<string>());
 
-        Assert.Contains(result, a => a.Id == "first-loot");
+        Assert.DoesNotContain(result, a => a.Id == "first-loot");
     }
 
     [Fact]
@@ -195,5 +208,65 @@ public class AchievementsTests
         Assert.Contains(result, a => a.Id == "first-steps");
         Assert.Contains(result, a => a.Id == "hoarder");
         Assert.Contains(result, a => a.Id == "first-loot");
+    }
+
+    [Fact]
+    public void ApplyToolResult_CriticalSuccess_AwardsCriticalHitAchievement()
+    {
+        var state = new PlayerState();
+        var dice = new DiceCheckResult(
+            Roll: 20, Modifier: 2, Total: 22, Difficulty: 10,
+            Success: true, CriticalSuccess: true, CriticalFailure: false,
+            Action: "attack", Stat: "strength");
+
+        GameToolRegistry.ApplyToolResult(dice, state);
+
+        Assert.Contains("critical-hit", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_CharismaSuccess_AwardsDiplomatAchievement()
+    {
+        var state = new PlayerState();
+        var dice = new DiceCheckResult(
+            Roll: 15, Modifier: 1, Total: 16, Difficulty: 10,
+            Success: true, CriticalSuccess: false, CriticalFailure: false,
+            Action: "persuade", Stat: "charisma");
+
+        GameToolRegistry.ApplyToolResult(dice, state);
+
+        Assert.Contains("diplomat", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_NpcResult_AwardsFirstContactAchievement()
+    {
+        var state = new PlayerState();
+        var npc = new NpcResult("npc1", "Eva", "Scholar", "Wise woman", "Secretly a spy", "neutral");
+
+        GameToolRegistry.ApplyToolResult(npc, state);
+
+        Assert.Contains("first-contact", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void CheckCombatAchievements_CombatWon_AwardsFirstBlood()
+    {
+        var state = new PlayerState { Health = 50 };
+
+        GameToolRegistry.CheckCombatAchievements(state, combatWon: true);
+
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void CheckCombatAchievements_LowHealthWin_AwardsSurvivor()
+    {
+        var state = new PlayerState { Health = 3 };
+
+        GameToolRegistry.CheckCombatAchievements(state, combatWon: true);
+
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+        Assert.Contains("survivor", state.UnlockedAchievements);
     }
 }

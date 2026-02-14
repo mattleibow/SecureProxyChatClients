@@ -39,8 +39,13 @@ public sealed class GameToolRegistry
         switch (result)
         {
             case LocationResult loc:
-                state.CurrentLocation = loc.Location;
-                state.VisitedLocations.Add(loc.Location);
+                // Normalize location name to match world map (case-insensitive)
+                string normalizedLoc = WorldMap.Locations
+                    .Select(l => l.Name)
+                    .FirstOrDefault(n => n.Equals(loc.Location, StringComparison.OrdinalIgnoreCase))
+                    ?? loc.Location;
+                state.CurrentLocation = normalizedLoc;
+                state.VisitedLocations.Add(normalizedLoc);
                 return result;
 
             case ItemResult item when item.Added:
@@ -90,14 +95,37 @@ public sealed class GameToolRegistry
                 {
                     state.SuccessStreak = 0;
                 }
+                // Event-based achievements for dice rolls
+                if (dice.CriticalSuccess)
+                    state.UnlockedAchievements.Add("critical-hit");
+                if (dice.Stat is "charisma" && dice.Success)
+                    state.UnlockedAchievements.Add("diplomat");
                 return result;
 
             case NpcResult npc:
+                // Award first-contact achievement
+                state.UnlockedAchievements.Add("first-contact");
                 // Strip hidden secret before sending to client
                 return new { npc.Id, npc.Name, npc.Role, npc.Description, npc.Attitude };
 
             default:
                 return result;
+        }
+    }
+
+    /// <summary>
+    /// Check and award combat-related event achievements after health changes.
+    /// Call after tool results are applied when combat is active.
+    /// </summary>
+    public static void CheckCombatAchievements(PlayerState state, bool combatWon)
+    {
+        if (combatWon)
+        {
+            state.UnlockedAchievements.Add("first-blood");
+        }
+        if (state.Health > 0 && state.Health < 5 && combatWon)
+        {
+            state.UnlockedAchievements.Add("survivor");
         }
     }
 }

@@ -138,7 +138,7 @@ Click **🌀 TWIST** to trigger a random plot twist! The AI introduces an unexpe
 
 ## 14. Consult the Oracle
 
-Click **👁 ORACLE** to ask the Oracle for guidance. The Oracle provides cryptic hints and prophetic visions that can reveal hidden information about your quest, nearby dangers, or secret treasures.
+Click **👁 ORACLE** to ask the Oracle for guidance. The Oracle provides cryptic hints and prophetic visions that can help guide your journey — ask any question about your quest, nearby dangers, or secret treasures.
 
 ![Oracle](screenshots/14-oracle.png)
 
@@ -253,7 +253,7 @@ Type any action in natural language. The AI Dungeon Master interprets your inten
 | 💤 **REST** | Rest to recover HP |
 | 🌀 **TWIST** | Trigger a random plot twist |
 | ⚔ **FIGHT** | Start a combat encounter |
-| 👁 **ORACLE** | Ask the oracle a yes/no question |
+| 👁 **ORACLE** | Ask the oracle for cryptic guidance |
 | 🗺 **MAP** | View the world map |
 
 ### Dice System

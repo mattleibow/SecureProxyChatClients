@@ -142,12 +142,13 @@ builder.Services.AddRateLimiter(options =>
 
 // Forwarded headers — ensures correct client IP behind reverse proxies (load balancers, Azure App Service)
 // IMPORTANT: In production, configure KnownProxies/KnownIPNetworks to match your infrastructure.
-// Clearing defaults prevents trusting arbitrary X-Forwarded-For headers from untrusted sources.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    // ForwardLimit prevents processing an unbounded chain of proxy headers
+    options.ForwardLimit = 2;
+    // In development, trust loopback proxies only. In production, add your specific proxy IPs/networks.
+    // Do NOT clear KnownNetworks/KnownProxies — the defaults (loopback) are the safest baseline.
 });
 builder.WebHost.ConfigureKestrel(options =>
 {

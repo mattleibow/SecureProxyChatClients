@@ -130,9 +130,24 @@ public static class PlayEndpoints
         return Results.Ok(state);
     }
 
-    private static IResult GetTwistOfFateAsync()
+    private static async Task<IResult> GetTwistOfFateAsync(
+        HttpContext httpContext,
+        IGameStateStore gameStateStore,
+        CancellationToken ct)
     {
+        string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
+
         var twist = TwistOfFate.GetRandomTwist();
+
+        // Award the "twist-of-fate" achievement
+        var state = await gameStateStore.GetOrCreatePlayerStateAsync(userId, ct);
+        if (!state.UnlockedAchievements.Contains("twist-of-fate"))
+        {
+            state.UnlockedAchievements.Add("twist-of-fate");
+            await gameStateStore.SavePlayerStateAsync(userId, state, ct);
+        }
+
         return Results.Ok(new { twist.Title, twist.Prompt, twist.Emoji, twist.Category });
     }
 
@@ -751,13 +766,6 @@ public static class PlayEndpoints
 
         // Store the oracle consultation as a memory
         await memoryService.StoreMemoryAsync(userId, "oracle", $"Consulted the Oracle about: {request.Question}", "lore", ct: ct);
-
-        // Award the "twist-of-fate" achievement for consulting oracle (if not already earned)
-        if (!state.UnlockedAchievements.Contains("twist-of-fate"))
-        {
-            state.UnlockedAchievements.Add("twist-of-fate");
-            await gameStateStore.SavePlayerStateAsync(userId, state, ct);
-        }
 
         return Results.Ok(new { oracle = oracleText });
     }

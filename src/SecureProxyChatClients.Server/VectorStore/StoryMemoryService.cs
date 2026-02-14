@@ -28,8 +28,8 @@ public sealed class PgVectorStoryMemoryService(VectorDbContext db, ILogger<PgVec
         db.StoryMemories.Add(memory);
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Stored {MemoryType} memory for user {UserId}: {Content}",
-            memoryType, userId, content.Length > 50 ? content[..50] + "..." : content);
+        logger.LogInformation("Stored {MemoryType} memory for user {UserId} (length: {Length})",
+            memoryType, userId, content.Length);
     }
 
     public async Task<IReadOnlyList<StoryMemory>> SearchAsync(

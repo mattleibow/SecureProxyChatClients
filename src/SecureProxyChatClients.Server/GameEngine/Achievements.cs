@@ -56,7 +56,7 @@ public static class Achievements
                 "first-steps" => state.CurrentLocation != "The Crossroads",
                 "explorer" => state.VisitedLocations.Count >= 5,
                 "cartographer" => state.VisitedLocations.Count >= 10,
-                "first-loot" => state.Inventory.Count > 2, // Starts with 3 items (class items + potions), so > 2 after loot
+                "first-loot" => state.Inventory.Count > 3, // Characters start with 3 items; > 3 means they found loot
                 "hoarder" => state.Inventory.Sum(i => i.Quantity) >= 10,
                 "wealthy" => state.Gold >= 100,
                 "rich" => state.Gold >= 500,
