@@ -128,4 +128,63 @@ public class GameToolRegistryTests
         Assert.DoesNotContain("Secretly a spy", json);
         Assert.Contains("Eva", json);
     }
+
+    [Fact]
+    public void ApplyToolResult_LocationResult_TracksVisitedLocations()
+    {
+        var state = new PlayerState();
+        Assert.Single(state.VisitedLocations); // "The Crossroads" is default
+
+        GameToolRegistry.ApplyToolResult(new LocationResult("Dark Forest", ""), state);
+        GameToolRegistry.ApplyToolResult(new LocationResult("Ancient Temple", ""), state);
+
+        Assert.Equal(3, state.VisitedLocations.Count);
+        Assert.Contains("Dark Forest", state.VisitedLocations);
+        Assert.Contains("Ancient Temple", state.VisitedLocations);
+    }
+
+    [Fact]
+    public void ApplyToolResult_LocationResult_DuplicateLocationNotTrackedTwice()
+    {
+        var state = new PlayerState();
+
+        GameToolRegistry.ApplyToolResult(new LocationResult("Village", ""), state);
+        GameToolRegistry.ApplyToolResult(new LocationResult("Village", ""), state);
+
+        Assert.Equal(2, state.VisitedLocations.Count); // Crossroads + Village
+    }
+
+    [Fact]
+    public void ApplyToolResult_GoldResult_AddsGold()
+    {
+        var state = new PlayerState { Gold = 10 };
+        var gold = new GoldResult(50, "Treasure");
+
+        GameToolRegistry.ApplyToolResult(gold, state);
+
+        Assert.Equal(60, state.Gold);
+    }
+
+    [Fact]
+    public void ApplyToolResult_ExperienceResult_NoLevelUpBelowThreshold()
+    {
+        var state = new PlayerState { Level = 1, Experience = 10 };
+        var xp = new ExperienceResult(20, "Minor task");
+
+        GameToolRegistry.ApplyToolResult(xp, state);
+
+        Assert.Equal(1, state.Level);
+        Assert.Equal(30, state.Experience);
+    }
+
+    [Fact]
+    public void ApplyToolResult_UnknownResult_ReturnsAsIs()
+    {
+        var state = new PlayerState();
+        var result = new { Something = "unknown" };
+
+        var clientResult = GameToolRegistry.ApplyToolResult(result, state);
+
+        Assert.Same(result, clientResult);
+    }
 }
