@@ -1,0 +1,99 @@
+@page "/bestiary"
+
+<PageTitle>📖 Bestiary — LoreEngine</PageTitle>
+
+<div class="lore-page">
+    <div class="lore-card p-4 mb-4">
+        <h2 class="lore-heading">📖 Bestiary</h2>
+        <p class="text-muted">Creatures you may encounter in your adventures. Knowledge is power — and sometimes survival.</p>
+    </div>
+
+    <div class="row g-3">
+        @foreach (var creature in _creatures)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="lore-card p-3 h-100 creature-card" style="border-left: 3px solid @GetTierColor(creature.Level);">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2" style="font-size: 2rem;">@creature.Emoji</span>
+                        <div>
+                            <h5 class="mb-0" style="font-family: var(--font-display); color: var(--lore-gold-bright);">
+                                @creature.Name
+                            </h5>
+                            <small class="text-muted">Level @creature.Level</small>
+                        </div>
+                        <div class="ms-auto text-end" style="font-family: var(--font-mono); font-size: 0.75rem;">
+                            <div>❤️ @creature.Health HP</div>
+                            <div>⚔️ @creature.Damage DMG</div>
+                        </div>
+                    </div>
+
+                    <p class="mb-2 small">@creature.Description</p>
+
+                    <div class="mb-2">
+                        @foreach (var ability in creature.Abilities)
+                        {
+                            <span class="badge bg-secondary me-1 mb-1" style="font-size: 0.65rem;">@ability</span>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between" style="font-size: 0.75rem;">
+                        <span class="text-muted">Weakness: <span style="color: var(--lore-emerald);">@creature.Weakness</span></span>
+                        <span>💰 @creature.GoldDrop gp · ✨ @creature.XpReward XP</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private sealed record CreatureInfo(
+        string Name, string Emoji, int Level, int Health, int AttackDc,
+        int Damage, string Description, string[] Abilities,
+        string Weakness, int XpReward, int GoldDrop);
+
+    // Client-side data — matches server Bestiary (public knowledge only)
+    private static readonly CreatureInfo[] _creatures =
+    [
+        new("Goblin Scout", "👺", 1, 15, 8, 3,
+            "A sneaky goblin armed with a rusty dagger. Not dangerous alone, but they rarely are.",
+            ["Nimble Dodge"], "Fire", 25, 5),
+        new("Dire Rat", "🐀", 1, 10, 6, 2,
+            "An oversized rodent with glowing red eyes and yellowed fangs.",
+            ["Disease Bite"], "Light", 15, 2),
+        new("Skeleton Warrior", "💀", 2, 25, 10, 5,
+            "The animated bones of a fallen soldier, wielding a notched sword.",
+            ["Undead Resilience", "Bone Shield"], "Bludgeoning", 40, 10),
+        new("Bandit Captain", "🗡️", 3, 35, 13, 8,
+            "A charismatic rogue who leads a gang of cutthroats from the shadows.",
+            ["Riposte", "Rally"], "Bribery/Persuasion", 75, 50),
+        new("Shadow Wisp", "👻", 3, 20, 12, 7,
+            "A writhing mass of dark energy that whispers forgotten secrets.",
+            ["Incorporeal", "Life Drain"], "Radiant/Holy magic", 60, 15),
+        new("Forest Troll", "🧌", 4, 60, 11, 10,
+            "A hulking brute covered in moss and bark. Its wounds close almost as fast as they open.",
+            ["Regeneration", "Crushing Blow"], "Fire", 100, 25),
+        new("Crystal Golem", "💎", 5, 80, 14, 12,
+            "A construct of living crystal, pulsing with arcane energy.",
+            ["Magic Resistance", "Shard Burst"], "Sonic/Thunder", 150, 40),
+        new("Wraith Lord", "🦇", 6, 50, 15, 15,
+            "An ancient king who refused to die. His crown sits upon a skull wreathed in cold flame.",
+            ["Dread Aura", "Phase Walk", "Soul Rend"], "Sunlight", 200, 100),
+        new("Swamp Hydra", "🐍", 7, 100, 13, 18,
+            "Three serpentine heads rise from the murky water, each dripping with venom.",
+            ["Multi-Attack", "Regrow Head", "Venomous Bite"], "Fire", 250, 60),
+        new("Ancient Dragon", "🐉", 10, 200, 18, 30,
+            "A mountain of scales and fury. Legends say it hoards not gold, but souls.",
+            ["Breath Weapon", "Frightful Presence", "Tail Sweep", "Legendary Resistance"],
+            "Ancient rune weapons", 1000, 500),
+    ];
+
+    private static string GetTierColor(int level) => level switch
+    {
+        <= 2 => "var(--lore-emerald)",
+        <= 4 => "var(--lore-gold)",
+        <= 6 => "var(--lore-purple)",
+        <= 8 => "var(--lore-crimson)",
+        _ => "#ff4444",
+    };
+}

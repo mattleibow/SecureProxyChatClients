@@ -498,3 +498,145 @@ a:hover { color: var(--lore-gold-bright) !important; }
 .glow-active {
     animation: glow-pulse 2s ease-in-out infinite;
 }
+
+/* ── Lore page container ─────────────────────────────── */
+
+.lore-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.lore-card {
+    background-color: var(--lore-bg-card);
+    border: 1px solid var(--lore-border);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.lore-heading {
+    font-family: var(--font-display);
+    color: var(--lore-gold) !important;
+    text-shadow: var(--glow-gold);
+    margin-bottom: 0.5rem;
+}
+
+/* ── Story area ──────────────────────────────────────── */
+
+.story-area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--lore-border) transparent;
+}
+
+.story-area .play-scene {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Twist of Fate button glow ────────────────────────── */
+
+.btn-outline-warning {
+    color: var(--lore-amber) !important;
+    border-color: var(--lore-amber) !important;
+    font-family: var(--font-display) !important;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.btn-outline-warning:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #fbbf24 !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+/* ── Inventory sidebar styling ───────────────────────── */
+
+.inventory-sidebar .card {
+    background-color: var(--lore-bg-deep) !important;
+}
+
+.inventory-sidebar .card-header {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.inventory-sidebar .card-body {
+    max-height: 250px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lore-border) transparent;
+}
+
+/* ── Character class card highlighting ────────────────── */
+
+.card.glow-active {
+    border-color: var(--lore-gold) !important;
+    background-color: rgba(201, 168, 76, 0.05) !important;
+}
+
+/* ── Game event animations ────────────────────────────── */
+
+.play-dice {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Combat damage flash ──────────────────────────────── */
+
+@keyframes damageFlash {
+    0% { background-color: rgba(220, 38, 38, 0.2); }
+    100% { background-color: transparent; }
+}
+
+.damage-flash {
+    animation: damageFlash 0.5s ease-out;
+}
+
+/* ── Level up celebration ─────────────────────────────── */
+
+@keyframes levelUp {
+    0% { text-shadow: 0 0 5px var(--lore-gold); }
+    50% { text-shadow: 0 0 20px var(--lore-gold), 0 0 40px var(--lore-gold-bright); }
+    100% { text-shadow: 0 0 5px var(--lore-gold); }
+}
+
+.level-up {
+    animation: levelUp 1s ease-in-out 3;
+}
+
+/* ── Journal page ────────────────────────────────────── */
+
+.lore-card .badge {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* ── Responsive adjustments ──────────────────────────── */
+
+@media (max-width: 768px) {
+    .player-stats {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .inventory-sidebar {
+        display: none;
+    }
+
+    .play-scene {
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
+}
