@@ -263,7 +263,7 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 
 #### Latest Session Fixes (2026-02-14 continued)
 - [x] **Process tree cleanup** — CopilotCliChatClient now terminates process tree on timeout (prevents orphan processes)
-- [x] **ForwardedHeaders ordering** — Moved before HTTPS redirect (correct middleware sequence)
+- [x] **ForwardedHeaders ordering** — Moved to run FIRST before all other middleware
 - [x] **KnownIPNetworks** — Fixed deprecated KnownNetworks → KnownIPNetworks
 - [x] **DB health check** — Added AddDbContextCheck<AppDbContext> for database readiness
 - [x] **Client HTTP timeout** — Set HttpClient.Timeout to 5 minutes
@@ -272,13 +272,15 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - [x] **6 smoke tests** — Health, alive, auth, security headers, register, login (all passing)
 - [x] **MS Learn docs** — 9-article series in mslearn/ folder (overview, architecture, security, auth, AI, API, testing, deployment, extending)
 - [x] **Game docs** — Complete gameplay guide, world lore, rules reference in docs/game/
+- [x] **9 case-variation content filter tests** — Mixed case script/iframe/event handler tests
+- [x] **3-MODEL FINAL APPROVAL** — Gemini ✅, Codex ✅, Sonnet ✅ (all approved)
 
 #### Security Controls Now at 21
 1-20: Previous controls
 21: DB readiness health check
 
 #### Test Summary
-- 271 unit tests passing
+- 280 unit tests passing
 - 17 integration tests passing (chat, auth, play, session, isolation)
 - 6 smoke tests passing (health, alive, auth, headers, register, login)
 - All Playwright tests remain
@@ -287,3 +289,4 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - `03ddc1a` — docs: add MS Learn reference docs and game documentation
 - `2fecc51` — security: fix Codex review findings - process cleanup, header ordering, health checks
 - `21eeea3` — feat: incremental SSE streaming, smoke tests, Codex review fixes
+- `5e4b977` — security: fix middleware ordering, add case-variation content filter tests
