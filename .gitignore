@@ -491,3 +491,4 @@ secrets.json
 
 # Dev secrets
 appsettings.Development.json
+*.png
