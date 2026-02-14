@@ -1,0 +1,129 @@
+@page "/writers-room"
+@using SecureProxyChatClients.Client.Web.Agents
+@using SecureProxyChatClients.Client.Web.Components
+@using SecureProxyChatClients.Client.Web.Services
+@inject ProxyChatClient ChatClient
+@inject AuthState AuthState
+
+<PageTitle>Writers Room</PageTitle>
+
+<h3>📝 The Writer's Room</h3>
+
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="alert alert-warning" data-testid="writers-room-unauthenticated">
+        You are not logged in. <a href="/login">Login first</a>.
+    </div>
+}
+else
+{
+    <div data-testid="writers-room-container">
+        @if (!isRunning && agentMessages.Count > 0)
+        {
+            <button class="btn btn-outline-secondary mb-3" @onclick="StartNewDiscussion" data-testid="new-discussion-btn">
+                New Discussion
+            </button>
+        }
+
+        @if (agentMessages.Count == 0 && !isRunning)
+        {
+            <div class="mb-3" data-testid="pitch-form">
+                <label class="form-label">Your story pitch:</label>
+                <textarea class="form-control" rows="3" @bind="userPitch"
+                          placeholder="Describe your story idea..."
+                          data-testid="pitch-input"></textarea>
+                <button class="btn btn-primary mt-2" @onclick="SubmitPitch"
+                        disabled="@string.IsNullOrWhiteSpace(userPitch)"
+                        data-testid="pitch-submit">
+                    Start Discussion
+                </button>
+            </div>
+        }
+
+        <div class="discussion-messages" data-testid="discussion-messages">
+            @foreach (var msg in agentMessages)
+            {
+                <div class="card mb-2" data-testid="agent-message">
+                    <div class="card-body">
+                        <AgentBadge AgentName="@msg.AgentName" Emoji="@msg.AgentEmoji" />
+                        <p class="card-text mt-2" data-testid="agent-message-content">@msg.Content</p>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (isRunning)
+        {
+            <div class="d-flex align-items-center mt-2" data-testid="discussion-loading">
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                <span>Agents are discussing...</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-2" data-testid="writers-room-error">@errorMessage</div>
+        }
+    </div>
+}
+
+@code {
+    private string userPitch = string.Empty;
+    private string? errorMessage;
+    private bool isRunning;
+    private readonly List<AgentMessage> agentMessages = [];
+    private CancellationTokenSource? cts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SubmitPitch()
+    {
+        if (string.IsNullOrWhiteSpace(userPitch)) return;
+
+        isRunning = true;
+        errorMessage = null;
+        agentMessages.Clear();
+        cts = new CancellationTokenSource();
+
+        try
+        {
+            var agents = LoreAgentFactory.CreateAll(ChatClient);
+            var room = new Agents.WritersRoom(agents);
+
+            await foreach (var message in room.RunDiscussionAsync(userPitch, maxRounds: 3, cts.Token))
+            {
+                agentMessages.Add(message);
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // User cancelled — no error
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isRunning = false;
+            cts?.Dispose();
+            cts = null;
+        }
+    }
+
+    private void StartNewDiscussion()
+    {
+        cts?.Cancel();
+        agentMessages.Clear();
+        userPitch = string.Empty;
+        errorMessage = null;
+    }
+}

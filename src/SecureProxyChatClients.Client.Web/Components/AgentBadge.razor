@@ -1,0 +1,18 @@
+@namespace SecureProxyChatClients.Client.Web.Components
+
+<span class="badge @BadgeClass" data-testid="agent-badge-@AgentName">
+    @Emoji @AgentName
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string AgentName { get; set; } = default!;
+    [Parameter, EditorRequired] public string Emoji { get; set; } = default!;
+
+    private string BadgeClass => AgentName switch
+    {
+        "Storyteller" => "bg-primary",
+        "Critic" => "bg-warning text-dark",
+        "Archivist" => "bg-info text-dark",
+        _ => "bg-secondary",
+    };
+}
