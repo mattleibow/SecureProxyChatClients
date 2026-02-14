@@ -7,6 +7,7 @@
 @inject HttpClient Http
 @inject AuthState AuthState
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>⚔️ Play — LoreEngine</PageTitle>
 
@@ -114,7 +115,7 @@ else if (playerState is not null)
             }
 
             <!-- Story area -->
-            <div class="story-area" style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;" data-testid="story-area">
+            <div id="story-area" class="story-area" style="max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;" data-testid="story-area">
                 @foreach (var msg in storyMessages)
                 {
                     <GameMessage Content="@msg.Content" Role="@msg.Role" />
@@ -378,6 +379,7 @@ else
                 {
                     storyMessages.Add(new ChatMessageDto { Role = "assistant", Content = $"👁️ *{result.Oracle}*" });
                     StateHasChanged();
+                    await ScrollStoryToBottom();
                 }
             }
         }
@@ -405,6 +407,7 @@ else
                     Content = $"```ascii\n{result.Map}```\nYou can travel to: {string.Join(", ", result.Connections)}\n\n*({result.Explored}/{result.Total} locations explored)*",
                 });
                 StateHasChanged();
+                await ScrollStoryToBottom();
             }
         }
         catch (Exception ex)
@@ -468,6 +471,7 @@ else
             isStreaming = false;
             streamingContent = string.Empty;
             StateHasChanged();
+            await ScrollStoryToBottom();
         }
     }
 
@@ -577,5 +581,15 @@ else
     {
         int amount = data.GetProperty("Amount").GetInt32();
         return amount >= 0 ? $"💰 +{amount} gold" : $"💰 {amount} gold";
+    }
+
+    private async Task ScrollStoryToBottom()
+    {
+        try
+        {
+            await Task.Yield(); // Let Blazor complete rendering
+            await JS.InvokeVoidAsync("eval", "(() => { const el = document.getElementById('story-area'); if(el) el.scrollTop = el.scrollHeight; })()");
+        }
+        catch { /* JS interop may fail during dispose */ }
     }
 }
