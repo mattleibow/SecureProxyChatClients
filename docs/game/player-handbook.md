@@ -62,8 +62,8 @@ The Warrior is the frontline fighter — tough, powerful, and built to take a hi
 - **Stat Bonus:** +Strength
 - **Starting Equipment:**
   - ⚔️ Iron Sword (weapon, common)
-  - 🛡️ Wooden Shield (armor, common)
-  - 🧪 Health Potion (potion, common)
+  - 🛡️ Leather Shield (armor, common)
+  - 🧪 Healing Potion ×2 (potion)
 - **Playstyle:** Direct combat, tanking damage, brute-force solutions
 
 #### 🪄 Mage
@@ -75,8 +75,8 @@ The Mage wields arcane power and ancient knowledge. Physically fragile but devas
 - **Stat Bonus:** +Wisdom
 - **Starting Equipment:**
   - 🪄 Oak Staff (weapon, uncommon)
-  - 📕 Spellbook (misc, uncommon)
-  - 💎 Mana Crystal (misc, rare)
+  - 📕 Spellbook (misc, rare)
+  - 🧪 Healing Potion ×2 (potion)
 - **Playstyle:** Magic-based combat, puzzle solving, lore discovery
 
 #### 🗡️ Rogue
@@ -88,8 +88,8 @@ The Rogue is a master of stealth, cunning, and precision. If you prefer outsmart
 - **Stat Bonus:** +Dexterity
 - **Starting Equipment:**
   - 🗡️ Twin Daggers (weapon, uncommon)
-  - 🔧 Lockpick Set (misc, uncommon)
-  - 💨 Smoke Bomb (potion, common)
+  - 🔧 Lockpicks (key, uncommon)
+  - 🧪 Healing Potion ×2 (potion)
 - **Playstyle:** Stealth, traps, critical strikes, lockpicking
 
 #### 🧭 Explorer
@@ -100,9 +100,9 @@ The Explorer is the jack-of-all-trades — equally comfortable in combat, conver
 
 - **Stat Bonus:** Balanced (all stats start at 10)
 - **Starting Equipment:**
-  - 🧭 Compass (misc, common)
-  - 🪢 Rope (misc, common)
-  - 🧪 Health Potion (potion, common)
+  - 🏒 Walking Stick (weapon, common)
+  - 🗺️ Traveler's Map (misc, common)
+  - 🧪 Healing Potion ×2 (potion)
 - **Playstyle:** Exploration, adaptability, well-rounded approach
 
 ### Your First Steps
@@ -435,7 +435,7 @@ LoreEngine features **18 achievements** across 5 categories. Achievements are mi
 | **Getting Stronger** | Reach your first level milestone. The grind begins. |
 | **Seasoned Adventurer** | Reach mid-level status. You've earned your scars. |
 | **Legend** | Reach the highest level tier. Songs are sung about you in the taverns. |
-| **Tempting Fate** | Trigger a critical failure at the worst possible moment. Sometimes the dice have a cruel sense of humor. |
+| **Tempting Fate** | Trigger a Twist of Fate event. The dice of destiny have been cast. |
 
 ---
 
