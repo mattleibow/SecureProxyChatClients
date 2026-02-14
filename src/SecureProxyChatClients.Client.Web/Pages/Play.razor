@@ -77,7 +77,7 @@ else if (playerState is null && !isLoading)
 else if (playerState is not null)
 {
     <!-- Game UI -->
-    <div class="d-flex gap-3" style="overflow: hidden;" data-testid="play-container">
+    <div class="d-flex gap-2" style="max-width: 100%; overflow: hidden;" data-testid="play-container">
         <!-- Main game area -->
         <div class="flex-grow-1" style="min-width: 0;">
             <!-- Player stats bar -->
@@ -174,7 +174,7 @@ else if (playerState is not null)
         </div>
 
         <!-- Inventory sidebar -->
-        <div class="inventory-sidebar" style="width: 220px; min-width: 180px; flex-shrink: 0;" data-testid="inventory-sidebar">
+        <div class="inventory-sidebar" style="width: 200px; flex-shrink: 0;" data-testid="inventory-sidebar">
             <div class="card">
                 <div class="card-header">🎒 Inventory</div>
                 <div class="card-body py-2">

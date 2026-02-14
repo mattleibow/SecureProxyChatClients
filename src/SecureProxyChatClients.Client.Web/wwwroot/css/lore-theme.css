@@ -531,6 +531,19 @@ a:hover { color: var(--lore-gold-bright) !important; }
     animation: glow-pulse 2s ease-in-out infinite;
 }
 
+/* ── Play page layout fix ─────────────────────────────── */
+/* Reduce content padding when play container is active to prevent sidebar clip */
+article.content:has([data-testid="play-container"]) {
+    padding-left: 0.75rem !important;
+    padding-right: 0.25rem !important;
+}
+
+/* Prevent horizontal overflow on main content area */
+main {
+    min-width: 0;
+    overflow-x: hidden;
+}
+
 /* ── Lore page container ─────────────────────────────── */
 
 .lore-page {
