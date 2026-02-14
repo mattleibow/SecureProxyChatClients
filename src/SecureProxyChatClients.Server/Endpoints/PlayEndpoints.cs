@@ -178,11 +178,17 @@ public static class PlayEndpoints
         string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null) return Results.Unauthorized();
 
+        // Validate CharacterClass against allowlist to prevent prompt injection
+        string[] validClasses = ["warrior", "rogue", "mage", "explorer"];
+        string characterClass = validClasses.Contains(request.CharacterClass?.ToLowerInvariant())
+            ? request.CharacterClass!
+            : "Explorer";
+
         var state = new PlayerState
         {
             PlayerId = userId,
             Name = string.IsNullOrWhiteSpace(request.CharacterName) ? "Adventurer" : request.CharacterName[..Math.Min(request.CharacterName.Length, 30)],
-            CharacterClass = request.CharacterClass ?? "Explorer",
+            CharacterClass = characterClass,
             CurrentLocation = "The Crossroads",
         };
 
@@ -285,12 +291,14 @@ public static class PlayEndpoints
 
         ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
 
-        // Tool execution loop with state tracking
+        // Tool execution loop with state tracking and timeout
         List<GameEvent> gameEvents = [];
+        using var aiTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        aiTimeout.CancelAfter(TimeSpan.FromMinutes(5));
 
         for (int round = 0; round < MaxToolCallRounds; round++)
         {
-            var aiResponse = await chatClient.GetResponseAsync(chatMessages, chatOptions, cancellationToken);
+            var aiResponse = await chatClient.GetResponseAsync(chatMessages, chatOptions, aiTimeout.Token);
 
             var functionCalls = aiResponse.Messages
                 .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
@@ -722,7 +730,10 @@ public static class PlayEndpoints
             new(ChatRole.User, request.Question),
         };
 
-        var response = await chatClient.GetResponseAsync(messages, cancellationToken: ct);
+        using var oracleTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        oracleTimeout.CancelAfter(TimeSpan.FromMinutes(2));
+
+        var response = await chatClient.GetResponseAsync(messages, cancellationToken: oracleTimeout.Token);
         string oracleText = response.Messages.LastOrDefault(m => m.Text is { Length: > 0 })?.Text ?? "The Oracle is silent...";
 
         // Filter AI output for XSS/injection

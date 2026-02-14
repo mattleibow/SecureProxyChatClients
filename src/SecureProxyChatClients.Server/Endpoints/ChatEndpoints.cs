@@ -115,10 +115,13 @@ public static class ChatEndpoints
         };
 
         // Tool execution loop
+        using var aiTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        aiTimeout.CancelAfter(TimeSpan.FromMinutes(5));
+
         for (int round = 0; round < MaxToolCallRounds; round++)
         {
             Microsoft.Extensions.AI.ChatResponse aiResponse =
-                await chatClient.GetResponseAsync(chatMessages, chatOptions, cancellationToken);
+                await chatClient.GetResponseAsync(chatMessages, chatOptions, aiTimeout.Token);
 
             // Check for function call content in the response
             List<FunctionCallContent> functionCalls = aiResponse.Messages

@@ -161,8 +161,12 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
 
-    var seeder = scope.ServiceProvider.GetRequiredService<SeedDataService>();
-    await seeder.SeedAsync();
+    // Only seed test data in Development or when explicitly configured
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue("SeedUser:Enabled", false))
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<SeedDataService>();
+        await seeder.SeedAsync();
+    }
 }
 
 if (app.Environment.IsDevelopment())
