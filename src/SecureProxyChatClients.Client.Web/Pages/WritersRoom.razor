@@ -4,6 +4,7 @@
 @using SecureProxyChatClients.Client.Web.Services
 @inject ProxyChatClient ChatClient
 @inject AuthState AuthState
+@inject StoryStateService StoryState
 
 <PageTitle>Writers Room</PageTitle>
 
@@ -63,6 +64,40 @@ else
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert alert-danger mt-2" data-testid="writers-room-error">@errorMessage</div>
+        }
+
+        @if (StoryState.Scenes.Count > 0 || StoryState.Characters.Count > 0)
+        {
+            <div class="card mt-3" data-testid="story-dashboard">
+                <div class="card-header"><strong>📊 Story Dashboard</strong></div>
+                <div class="card-body">
+                    @if (StoryState.Scenes.Count > 0)
+                    {
+                        <h6>Scenes (@StoryState.Scenes.Count)</h6>
+                        <ul class="list-group list-group-flush mb-2">
+                            @foreach (var scene in StoryState.Scenes)
+                            {
+                                <li class="list-group-item py-1">
+                                    <strong>@scene.Title</strong> — @scene.Location
+                                    <span class="badge bg-secondary ms-1">@scene.Mood</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    @if (StoryState.Characters.Count > 0)
+                    {
+                        <h6>Characters (@StoryState.Characters.Count)</h6>
+                        <ul class="list-group list-group-flush">
+                            @foreach (var character in StoryState.Characters)
+                            {
+                                <li class="list-group-item py-1">
+                                    <strong>@character.Name</strong> (@character.Role)
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
         }
     </div>
 }

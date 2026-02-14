@@ -1,7 +1,72 @@
 ﻿@page "/"
+@using SecureProxyChatClients.Client.Web.Services
+@inject StoryStateService StoryState
+@inject AuthState AuthState
 
-<PageTitle>Home</PageTitle>
+<PageTitle>LoreEngine — Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div data-testid="home-container">
+    <h1>🎭 LoreEngine</h1>
+    <p class="lead">Your AI writing team. Your story. Your rules.</p>
 
-Welcome to your new app.
+    <p>
+        LoreEngine is an interactive fiction builder powered by a team of AI agents — your personal Writer's Room.
+        Pitch your story ideas, watch your agents debate and refine them, then build your narrative scene by scene.
+    </p>
+
+    <div class="row g-3 mt-3">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">🎬 Create Story</h5>
+                    <p class="card-text">Start a new story from scratch. Choose a genre, set world rules, and let your AI writers bring it to life.</p>
+                    <a href="/create-story" class="btn btn-primary" data-testid="link-create-story">Get Started</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">📝 Writer's Room</h5>
+                    <p class="card-text">Jump straight into a group discussion with the Storyteller, Critic, and Archivist agents.</p>
+                    <a href="/writers-room" class="btn btn-outline-primary" data-testid="link-writers-room">Open Room</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">💬 Chat</h5>
+                    <p class="card-text">Direct chat with the AI through the secure proxy. Supports streaming and tool calling.</p>
+                    <a href="/chat" class="btn btn-outline-primary" data-testid="link-chat">Open Chat</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (StoryState.Scenes.Count > 0 || StoryState.Characters.Count > 0)
+    {
+        <div class="card mt-4" data-testid="home-stats">
+            <div class="card-header"><strong>📊 Quick Stats</strong></div>
+            <div class="card-body">
+                <div class="d-flex gap-4">
+                    <div><strong>@StoryState.Scenes.Count</strong> Scene(s)</div>
+                    <div><strong>@StoryState.Characters.Count</strong> Character(s)</div>
+                    <div><strong>@StoryState.WorldRules.Count</strong> World Rule(s)</div>
+                    <div><strong>@StoryState.Connections.Count</strong> Connection(s)</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+}

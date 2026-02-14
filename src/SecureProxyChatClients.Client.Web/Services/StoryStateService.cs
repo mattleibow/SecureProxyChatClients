@@ -84,6 +84,56 @@ public sealed class StoryStateService
 
     public WorldRulesResult GetWorldRules() => new() { Rules = _worldRules.ToList() };
 
+    /// <summary>
+    /// Builds a scoped context string for a given scene including its immediate neighbors.
+    /// Limited to <paramref name="maxChars"/> to prevent token overflow.
+    /// </summary>
+    public string BuildScopedContext(string sceneId, int maxChars = 2000)
+    {
+        var scene = GetScene(sceneId);
+        if (scene is null) return string.Empty;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"Current Scene: {scene.Title}");
+        sb.AppendLine($"Location: {scene.Location} | Mood: {scene.Mood}");
+        sb.AppendLine(scene.Description);
+
+        // Characters in scene
+        foreach (var charId in scene.Characters)
+        {
+            var character = _characters.FirstOrDefault(c => c.Id == charId || c.Name == charId);
+            if (character is not null && sb.Length < maxChars)
+                sb.AppendLine($"Character: {character.Name} ({character.Role}) — {Truncate(character.Backstory, 100)}");
+        }
+
+        // Immediate neighbor scenes via connections
+        var neighborIds = _connections
+            .Where(c => c.FromSceneId == sceneId || c.ToSceneId == sceneId)
+            .Select(c => c.FromSceneId == sceneId ? c.ToSceneId : c.FromSceneId)
+            .Distinct();
+
+        foreach (var neighborId in neighborIds)
+        {
+            if (sb.Length >= maxChars) break;
+            var neighbor = GetScene(neighborId);
+            if (neighbor is not null)
+                sb.AppendLine($"Nearby: {neighbor.Title} — {Truncate(neighbor.Description, 100)}");
+        }
+
+        // World rules summary
+        if (_worldRules.Count > 0 && sb.Length < maxChars)
+        {
+            sb.AppendLine("World Rules:");
+            foreach (var rule in _worldRules)
+            {
+                if (sb.Length >= maxChars) break;
+                sb.AppendLine($"- {rule.Name}: {Truncate(rule.Description, 80)}");
+            }
+        }
+
+        return sb.Length > maxChars ? sb.ToString()[..maxChars] : sb.ToString();
+    }
+
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : value[..maxLength] + "...";
 }

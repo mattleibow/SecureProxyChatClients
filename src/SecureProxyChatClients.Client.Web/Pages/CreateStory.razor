@@ -1,0 +1,386 @@
+@page "/create-story"
+@using SecureProxyChatClients.Client.Web.Agents
+@using SecureProxyChatClients.Client.Web.Components
+@using SecureProxyChatClients.Client.Web.Services
+@using SecureProxyChatClients.Shared.Contracts
+@inject ProxyChatClient ChatClient
+@inject AuthState AuthState
+@inject StoryStateService StoryState
+@inject NavigationManager Nav
+
+<PageTitle>Create Story — LoreEngine</PageTitle>
+
+<h3>🎭 LoreEngine — Create Your Story</h3>
+
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="alert alert-warning" data-testid="create-story-unauthenticated">
+        You are not logged in. <a href="/login">Login first</a>.
+    </div>
+}
+else
+{
+    <div data-testid="create-story-container">
+        <!-- Step indicators -->
+        <div class="d-flex gap-2 mb-3" data-testid="step-indicators">
+            @for (int i = 1; i <= 4; i++)
+            {
+                var step = i;
+                <span class="badge @(step == currentStep ? "bg-primary" : step < currentStep ? "bg-success" : "bg-secondary")"
+                      style="font-size: 0.9em;">
+                    Step @step: @StepLabel(step)
+                </span>
+            }
+        </div>
+
+        @switch (currentStep)
+        {
+            case 1:
+                <!-- Step 1: Genre + World Selection -->
+                <div class="card" data-testid="step-genre">
+                    <div class="card-header"><strong>Step 1: Choose Your Genre & World</strong></div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            @foreach (var genre in genres)
+                            {
+                                <div class="col-6 col-md-3">
+                                    <div class="card h-100 @(selectedGenre == genre.Key ? "border-primary border-2" : "")"
+                                         style="cursor: pointer;"
+                                         @onclick="() => selectedGenre = genre.Key"
+                                         data-testid="genre-@genre.Key">
+                                        <div class="card-body text-center">
+                                            <div style="font-size: 2em;">@genre.Value.Emoji</div>
+                                            <h6>@genre.Value.Name</h6>
+                                            <small class="text-muted">@genre.Value.Description</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-primary mt-3" @onclick="GoToStep2"
+                                disabled="@(selectedGenre is null)" data-testid="step1-next">
+                            Next →
+                        </button>
+                    </div>
+                </div>
+                break;
+
+            case 2:
+                <!-- Step 2: World Rules -->
+                <div class="card" data-testid="step-rules">
+                    <div class="card-header"><strong>Step 2: World Rules for @genres[selectedGenre!].Name</strong></div>
+                    <div class="card-body">
+                        <p class="text-muted">Define the rules that govern your world, or use the defaults.</p>
+                        <div class="mb-3">
+                            <label class="form-label">World Rules (one per line):</label>
+                            <textarea class="form-control" rows="5" @bind="worldRulesText" @bind:event="oninput"
+                                      data-testid="world-rules-input"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary" @onclick="UseDefaultRules" data-testid="use-defaults">
+                                Use Defaults
+                            </button>
+                            <button class="btn btn-primary" @onclick="GoToStep3" data-testid="step2-next">
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                break;
+
+            case 3:
+                <!-- Step 3: Opening Pitch → Writers Room -->
+                <div class="card" data-testid="step-pitch">
+                    <div class="card-header"><strong>Step 3: Pitch Your Story</strong></div>
+                    <div class="card-body">
+                        @if (!discussionStarted)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Your opening pitch:</label>
+                                <textarea class="form-control" rows="4" @bind="userPitch" @bind:event="oninput"
+                                          placeholder="Describe your story idea... What's the hook? Who are the main characters?"
+                                          data-testid="pitch-input"></textarea>
+                            </div>
+                            <button class="btn btn-primary" @onclick="StartDiscussion"
+                                    disabled="@string.IsNullOrWhiteSpace(userPitch)" data-testid="start-discussion">
+                                🎬 Start Writer's Room Discussion
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="discussion-messages" data-testid="discussion-messages" style="max-height: 400px; overflow-y: auto;">
+                                @foreach (var msg in agentMessages)
+                                {
+                                    <div class="card mb-2">
+                                        <div class="card-body py-2">
+                                            <AgentBadge AgentName="@msg.AgentName" Emoji="@msg.AgentEmoji" />
+                                            <p class="card-text mt-1 mb-0" style="font-size: 0.9em;">@msg.Content</p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (isRunning)
+                            {
+                                <div class="d-flex align-items-center mt-2">
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Agents are discussing...</span>
+                                </div>
+                            }
+
+                            @if (!isRunning)
+                            {
+                                <button class="btn btn-primary mt-2" @onclick="GoToStep4" data-testid="step3-next">
+                                    Continue to Scene Building →
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+                break;
+
+            case 4:
+                <!-- Step 4: Add scenes -->
+                <div class="card" data-testid="step-scenes">
+                    <div class="card-header"><strong>Step 4: Build Your Story</strong></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Describe the next scene or event:</label>
+                            <textarea class="form-control" rows="3" @bind="scenePrompt" @bind:event="oninput"
+                                      placeholder="What happens next?"
+                                      data-testid="scene-input"></textarea>
+                            <button class="btn btn-primary mt-2" @onclick="AddScene"
+                                    disabled="@(isRunning || string.IsNullOrWhiteSpace(scenePrompt))"
+                                    data-testid="add-scene">
+                                @(isRunning ? "Writing..." : "✍️ Write Scene")
+                            </button>
+                        </div>
+
+                        @if (agentMessages.Count > 0)
+                        {
+                            <div class="discussion-messages" data-testid="scene-discussion" style="max-height: 300px; overflow-y: auto;">
+                                @foreach (var msg in agentMessages)
+                                {
+                                    <div class="card mb-2">
+                                        <div class="card-body py-2">
+                                            <AgentBadge AgentName="@msg.AgentName" Emoji="@msg.AgentEmoji" />
+                                            <p class="card-text mt-1 mb-0" style="font-size: 0.9em;">@msg.Content</p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (isRunning)
+                            {
+                                <div class="d-flex align-items-center mt-2">
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Agents are discussing...</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+                break;
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-2" data-testid="create-story-error">@errorMessage</div>
+        }
+
+        <!-- Story Progress -->
+        @if (StoryState.Scenes.Count > 0)
+        {
+            <div class="card mt-3" data-testid="story-progress">
+                <div class="card-header"><strong>📖 Story Progress</strong></div>
+                <div class="card-body py-2">
+                    <ol class="mb-0">
+                        @foreach (var scene in StoryState.Scenes)
+                        {
+                            <li>
+                                <strong>@scene.Title</strong>
+                                <span class="text-muted ms-1">@scene.Location</span>
+                                <span class="badge bg-secondary ms-1">@scene.Mood</span>
+                            </li>
+                        }
+                    </ol>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private int currentStep = 1;
+    private string? selectedGenre;
+    private string worldRulesText = string.Empty;
+    private string userPitch = string.Empty;
+    private string scenePrompt = string.Empty;
+    private string? errorMessage;
+    private bool isRunning;
+    private bool discussionStarted;
+    private readonly List<AgentMessage> agentMessages = [];
+    private CancellationTokenSource? cts;
+
+    private static readonly Dictionary<string, GenreInfo> genres = new()
+    {
+        ["fantasy"] = new("Fantasy", "🏰", "Magic, dragons, and epic quests"),
+        ["scifi"] = new("Sci-Fi", "🚀", "Space, technology, and the future"),
+        ["mystery"] = new("Mystery", "🔍", "Puzzles, clues, and whodunits"),
+        ["horror"] = new("Horror", "👻", "Fear, suspense, and the unknown"),
+    };
+
+    private static readonly Dictionary<string, string> defaultRules = new()
+    {
+        ["fantasy"] = "Magic requires spoken incantations\nDragons are intelligent beings\nIron weakens fae creatures\nProphecies always have double meanings",
+        ["scifi"] = "FTL travel uses warp gates\nAI sentience is legally recognized\nEnergy weapons replaced projectiles\nTeleportation has a 10km range limit",
+        ["mystery"] = "Every suspect has a motive\nPhysical evidence cannot lie\nThe detective must play fair with the reader\nRed herrings are limited to two per chapter",
+        ["horror"] = "The monster can sense fear\nLight sources are unreliable\nCommunication devices fail at critical moments\nPast trauma creates vulnerability",
+    };
+
+    private sealed record GenreInfo(string Name, string Emoji, string Description);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    private static string StepLabel(int step) => step switch
+    {
+        1 => "Genre",
+        2 => "Rules",
+        3 => "Pitch",
+        4 => "Scenes",
+        _ => "",
+    };
+
+    private void GoToStep2()
+    {
+        if (selectedGenre is null) return;
+        worldRulesText = defaultRules.GetValueOrDefault(selectedGenre, "");
+        currentStep = 2;
+    }
+
+    private void UseDefaultRules()
+    {
+        if (selectedGenre is not null)
+            worldRulesText = defaultRules.GetValueOrDefault(selectedGenre, "");
+    }
+
+    private void GoToStep3()
+    {
+        // Save world rules to StoryStateService
+        foreach (var line in worldRulesText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            StoryState.AddWorldRule(new WorldRule
+            {
+                Name = line.Length > 40 ? line[..40] : line,
+                Description = line,
+            });
+        }
+        currentStep = 3;
+    }
+
+    private void GoToStep4()
+    {
+        agentMessages.Clear();
+        currentStep = 4;
+    }
+
+    private async Task StartDiscussion()
+    {
+        if (string.IsNullOrWhiteSpace(userPitch)) return;
+
+        discussionStarted = true;
+        isRunning = true;
+        errorMessage = null;
+        agentMessages.Clear();
+        cts = new CancellationTokenSource();
+
+        try
+        {
+            var genreContext = selectedGenre is not null
+                ? $"[Genre: {genres[selectedGenre].Name}] "
+                : "";
+            var fullPitch = $"{genreContext}{userPitch}";
+
+            var agents = LoreAgentFactory.CreateAll(ChatClient);
+            var room = new Agents.WritersRoom(agents);
+
+            await foreach (var message in room.RunDiscussionAsync(fullPitch, maxRounds: 2, cts.Token))
+            {
+                agentMessages.Add(message);
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isRunning = false;
+            cts?.Dispose();
+            cts = null;
+        }
+    }
+
+    private async Task AddScene()
+    {
+        if (string.IsNullOrWhiteSpace(scenePrompt)) return;
+
+        isRunning = true;
+        errorMessage = null;
+        agentMessages.Clear();
+        cts = new CancellationTokenSource();
+
+        try
+        {
+            var context = StoryState.Scenes.Count > 0
+                ? StoryState.BuildScopedContext(StoryState.Scenes[^1].Id, 1000)
+                : "";
+            var genreContext = selectedGenre is not null
+                ? $"[Genre: {genres[selectedGenre].Name}] "
+                : "";
+            var fullPrompt = $"{genreContext}[Scene {StoryState.Scenes.Count + 1}] {context}\n\n{scenePrompt}";
+
+            var agents = LoreAgentFactory.CreateAll(ChatClient);
+            var room = new Agents.WritersRoom(agents);
+
+            await foreach (var message in room.RunDiscussionAsync(fullPrompt, maxRounds: 2, cts.Token))
+            {
+                agentMessages.Add(message);
+                StateHasChanged();
+            }
+
+            // Auto-save scene to story state
+            StoryState.AddScene(new SceneResult
+            {
+                Id = $"scene-{StoryState.Scenes.Count + 1}",
+                Title = scenePrompt.Length > 50 ? scenePrompt[..50] + "..." : scenePrompt,
+                Description = agentMessages.LastOrDefault()?.Content ?? scenePrompt,
+                Characters = [],
+                Location = "TBD",
+                Mood = selectedGenre ?? "neutral",
+            });
+
+            scenePrompt = string.Empty;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isRunning = false;
+            cts?.Dispose();
+            cts = null;
+        }
+    }
+}

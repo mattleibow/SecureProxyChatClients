@@ -8,6 +8,7 @@
 @inject ProxyChatClient ChatClient
 @inject AuthState AuthState
 @inject NavigationManager Nav
+@inject StoryStateService StoryState
 
 <PageTitle>Chat</PageTitle>
 
@@ -95,6 +96,23 @@ else
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
                     <div class="alert alert-danger mt-2" data-testid="chat-error">@errorMessage</div>
+                }
+
+                @if (StoryState.Scenes.Count > 0 || StoryState.Characters.Count > 0)
+                {
+                    <div class="card mt-3" data-testid="chat-story-dashboard">
+                        <div class="card-header"><strong>📊 Story State</strong></div>
+                        <div class="card-body py-2">
+                            <small>
+                                <strong>@StoryState.Scenes.Count</strong> scene(s),
+                                <strong>@StoryState.Characters.Count</strong> character(s)
+                                @if (StoryState.WorldRules.Count > 0)
+                                {
+                                    <span>, <strong>@StoryState.WorldRules.Count</strong> world rule(s)</span>
+                                }
+                            </small>
+                        </div>
+                    </div>
                 }
             </div>
         </div>
