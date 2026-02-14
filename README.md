@@ -179,8 +179,11 @@ The server implements a comprehensive defense-in-depth security pipeline:
 | S13 | **Observability** | AI metrics (token usage, latency, error rate) via OpenTelemetry |
 | S14 | **Health checks** | AI provider health check, Aspire default health endpoints |
 | S15 | **Concurrency control** | Optimistic locking on game state with version tracking |
-| S16 | **Secure cookies** | HttpOnly, Secure, SameSite=Strict, 2-hour expiry |
-| S17 | **Password policy** | 8+ chars, digit required, lockout after 5 failed attempts |
+| S16 | **Bearer-only API auth** | API endpoints require Bearer tokens, no cookie auth (prevents CSRF) |
+| S17 | **Password policy** | 12+ chars, digit/uppercase/lowercase/special required, 15-minute lockout |
+| S18 | **Auth rate limiting** | 10 requests/minute per IP on login/register endpoints |
+| S19 | **ForwardedHeaders security** | KnownNetworks/KnownProxies cleared, explicit proxy config required |
+| S20 | **CharacterClass allowlist** | User-supplied class validated against strict allowlist before prompt injection |
 
 ---
 
@@ -216,12 +219,13 @@ Configuration is via `appsettings.json` on the server:
 | `RateLimiting:PermitLimit` | `30` | Token bucket capacity |
 | `RateLimiting:WindowSeconds` | `60` | Replenishment window |
 
-### Seed User
+### Seed User (Development Only)
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `SeedUser:Email` | `test@test.com` | Dev user email |
-| `SeedUser:Password` | `Test123!` | Dev user password |
+| `SeedUser:Password` | *(random)* | Dev user password (set in `appsettings.Development.json`) |
+| `SeedUser:Enabled` | `false` | Must be `true` for seeding in non-Development environments |
 
 ---
 
