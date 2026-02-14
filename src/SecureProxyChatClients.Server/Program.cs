@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -130,16 +131,14 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-// Request body size limit
+// Forwarded headers — ensures correct client IP behind reverse proxies (load balancers, Azure App Service)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 1_048_576; // 1 MB
-});
-
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
-                               Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
 });
 
 var app = builder.Build();
