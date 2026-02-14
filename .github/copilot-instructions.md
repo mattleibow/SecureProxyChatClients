@@ -145,3 +145,6 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-16: Collection expressions `[]` cannot initialize `IReadOnlySet<string>` — use `new HashSet<string>()` explicitly
 - 2026-02-16: Game engine pattern: server-side tools enforce ALL game mechanics (dice, items, HP, gold, XP, NPCs) — client can't cheat. NPC HiddenSecret stripped before sending to client.
 - 2026-02-16: Achievement system: state-based achievements checked after tool execution; event-based achievements awarded by game events. Use IReadOnlySet for the unlocked check parameter.
+- 2026-02-16: Blazor WASM AuthState race condition: multiple components calling InitializeAsync() concurrently can race — first sets s_initialized=true, second returns before JS interop completes. Fix: use a shared Task (s_initTask ??= InitializeCoreAsync()) so all callers await the same operation.
+- 2026-02-16: In OnAfterRenderAsync, use `await InvokeAsync(StateHasChanged)` instead of bare `StateHasChanged()` — the latter may not trigger re-render properly in Blazor WASM's single-threaded context.
+- 2026-02-16: Auth-guarded pages should use `_initialized` pattern: show spinner until OnAfterRenderAsync completes auth init, then check IsAuthenticated. This prevents flash of "Sign in" on full page reload.

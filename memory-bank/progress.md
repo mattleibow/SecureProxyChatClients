@@ -311,3 +311,15 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - 15 gameplay screenshots captured via Python Playwright (Chromium, headless)
 - Walkthrough document created: `docs/game/walkthrough.md`
 - Complete flow: registration → character creation → gameplay → combat → bestiary → journal → chat
+
+### Auth State Race Condition Fix ✅ (commit `cb08164`)
+- [x] Root cause: `AuthState.InitializeAsync()` set `s_initialized = true` BEFORE the async JS interop to read sessionStorage completed
+- [x] When multiple Blazor components called `InitializeAsync()` concurrently (NavMenu + page), the second caller got `s_initialized = true` but the token wasn't loaded yet
+- [x] Fix: Replaced `s_initialized` boolean with a shared `Task` (`s_initTask`) — all callers `await` the same Task
+- [x] All pages now use `_initialized` guard pattern: show spinner until auth state loads, then check `IsAuthenticated`
+- [x] All pages use `await InvokeAsync(StateHasChanged)` instead of `StateHasChanged()` in `OnAfterRenderAsync`
+- [x] **Key learning**: In Blazor WASM, `StateHasChanged()` inside `OnAfterRenderAsync` may not trigger re-render properly; use `await InvokeAsync(StateHasChanged)` instead
+- [x] All 303 tests pass (280 unit + 17 integration + 6 smoke)
+- [x] Verified: all 8 authenticated pages work correctly after full page reload
+
+**Total test count: 280 unit + 17 integration + 6 smoke = 303 non-E2E tests passing**
