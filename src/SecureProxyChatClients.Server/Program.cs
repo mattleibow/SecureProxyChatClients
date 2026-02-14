@@ -12,6 +12,13 @@ using SecureProxyChatClients.Server.VectorStore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load local secrets file if present (gitignored)
+var secretsPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "secrets.json");
+if (File.Exists(secretsPath))
+{
+    builder.Configuration.AddJsonFile(Path.GetFullPath(secretsPath), optional: true, reloadOnChange: false);
+}
+
 builder.AddServiceDefaults();
 
 // Database

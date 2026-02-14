@@ -114,7 +114,7 @@ SecureProxyChatClients/
 │   │   └── Services/           ← ProxyChatClient, AuthState, StoryState
 │   └── SecureProxyChatClients.Shared/        ← Shared DTOs & contracts
 ├── tests/
-│   ├── Tests.Unit/             ← Fast unit tests (138+ tests)
+│   ├── Tests.Unit/             ← Fast unit tests (253+ tests)
 │   ├── Tests.Integration/      ← Aspire integration tests
 │   ├── Tests.Playwright/       ← Browser E2E tests
 │   └── Tests.Smoke/            ← Real AI provider tests
@@ -145,18 +145,27 @@ dotnet test
 
 ## Security Model
 
-The server implements a comprehensive security pipeline:
+The server implements a comprehensive defense-in-depth security pipeline:
 
 | # | Control | Description |
 |---|---------|-------------|
 | S1 | **Role stripping** | Forces all user-authored prompt messages to `role: user` — prevents system message injection |
-| S2 | **Input validation** | Message length limits (4000 chars/message, 50000 total), content sanitization |
-| S3 | **Rate limiting** | Per-user fixed window rate limiting (30 requests/60 seconds) |
-| S4 | **Content filtering** | Sanitizes LLM output before sending to client |
+| S2 | **Input validation** | Message length limits (4000 chars/message, 50000 total), HTML/script injection detection |
+| S3 | **Rate limiting** | Token bucket rate limiting with burst handling (30 tokens/60s) |
+| S4 | **Content filtering** | Sanitizes LLM output — removes scripts, iframes, event handlers, javascript: protocol |
 | S5 | **Tool allowlisting** | Only pre-approved tool names accepted from client |
 | S6 | **Prompt injection detection** | Blocked patterns for common injection attacks |
-| S7 | **Session security** | Server-generated session IDs with ownership verification |
-| S8 | **Authentication** | ASP.NET Core Identity with bearer token auth |
+| S7 | **Session security** | Server-generated session IDs with ownership verification (IDOR prevention) |
+| S8 | **Authentication** | ASP.NET Core Identity with bearer token auth, account lockout |
+| S9 | **Security headers** | CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
+| S10 | **Error handling** | Global exception handler with ProblemDetails — never leaks internal details |
+| S11 | **Audit logging** | Security events (401/403) logged with structured data |
+| S12 | **Request limits** | 1MB request body limit, 5-minute AI call timeout |
+| S13 | **Observability** | AI metrics (token usage, latency, error rate) via OpenTelemetry |
+| S14 | **Health checks** | AI provider health check, Aspire default health endpoints |
+| S15 | **Concurrency control** | Optimistic locking on game state with version tracking |
+| S16 | **Secure cookies** | HttpOnly, Secure, SameSite=Strict, 2-hour expiry |
+| S17 | **Password policy** | 8+ chars, digit required, lockout after 5 failed attempts |
 
 ---
 
@@ -189,8 +198,8 @@ Configuration is via `appsettings.json` on the server:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `RateLimiting:PermitLimit` | `30` | Requests per window |
-| `RateLimiting:WindowSeconds` | `60` | Window duration |
+| `RateLimiting:PermitLimit` | `30` | Token bucket capacity |
+| `RateLimiting:WindowSeconds` | `60` | Replenishment window |
 
 ### Seed User
 
