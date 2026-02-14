@@ -110,6 +110,33 @@ else if (playerState is not null)
                 <span class="ms-auto stat-value">📍 @playerState.CurrentLocation</span>
             </div>
 
+            <!-- Combat Tracker -->
+            @if (activeCombat is not null)
+            {
+                <div class="combat-tracker mb-2" data-testid="combat-tracker">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span style="font-family: var(--font-display); color: var(--lore-crimson); font-size: 0.9rem;">
+                            ⚔️ COMBAT — Turn @combatTurn
+                        </span>
+                        <button class="btn btn-outline-secondary btn-sm" style="font-size: 0.7rem; padding: 2px 8px;"
+                                @onclick="() => activeCombat = null">✕ End</button>
+                    </div>
+                    <div class="combat-combatant enemy">
+                        <span class="combat-emoji">@activeCombat.Emoji</span>
+                        <span class="combat-name">@activeCombat.Name</span>
+                        <span class="combat-level">Lvl @activeCombat.Level</span>
+                    </div>
+                    <div class="combat-combatant player">
+                        <span class="combat-emoji">🛡️</span>
+                        <span class="combat-name">@playerState.Name</span>
+                        <div class="combat-hp-bar">
+                            <div class="combat-hp-fill" style="width: @(playerState.MaxHealth > 0 ? (int)(100.0 * playerState.Health / playerState.MaxHealth) : 0)%"></div>
+                        </div>
+                        <span class="combat-hp-text">@playerState.Health/@playerState.MaxHealth</span>
+                    </div>
+                </div>
+            }
+
             <!-- Game events (dice rolls, items, etc.) -->
             @if (gameEvents.Count > 0)
             {
@@ -245,6 +272,10 @@ else
     private string streamingContent = string.Empty;
     private string? sessionId;
 
+    // Combat state
+    private EncounterData? activeCombat;
+    private int combatTurn;
+
     // Character creation
     private string characterName = string.Empty;
     private string? selectedClass;
@@ -317,7 +348,7 @@ else
                 gameEvents.Clear();
 
                 // Send the opening prompt
-                await SendActionInternal("I arrive at the crossroads. Describe the scene and what I see.");
+                await SendActionInternal("I arrive at the crossroads. Describe the scene and what I see.", showUserMessage: false);
             }
             else
             {
@@ -383,8 +414,10 @@ else
             var encounter = await Http.GetFromJsonAsync<EncounterData>("/api/play/encounter");
             if (encounter is not null)
             {
+                activeCombat = encounter;
+                combatTurn = 1;
                 gameEvents.Add(new GameEvent { Type = "Encounter", Data = JsonSerializer.SerializeToElement(new { Name = encounter.Name, Emoji = encounter.Emoji, Level = encounter.Level }) });
-                await SendActionInternal(encounter.Prompt);
+                await SendActionInternal(encounter.Prompt, showUserMessage: false);
             }
         }
         catch (Exception ex)
@@ -460,9 +493,12 @@ else
         public int Total { get; set; }
     }
 
-    private async Task SendActionInternal(string action)
+    private async Task SendActionInternal(string action, bool showUserMessage = true)
     {
-        storyMessages.Add(new ChatMessageDto { Role = "user", Content = action });
+        if (showUserMessage)
+        {
+            storyMessages.Add(new ChatMessageDto { Role = "user", Content = action });
+        }
         errorMessage = null;
         isStreaming = true;
         streamingContent = string.Empty;
@@ -555,6 +591,8 @@ else
         playerState = null;
         isLoading = false;
         isStreaming = false;
+        activeCombat = null;
+        combatTurn = 0;
         storyMessages.Clear();
         gameEvents.Clear();
         sessionId = null;

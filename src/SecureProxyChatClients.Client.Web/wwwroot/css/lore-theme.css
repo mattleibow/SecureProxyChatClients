@@ -725,3 +725,72 @@ main {
         padding: 0.75rem;
     }
 }
+
+/* ── Combat Tracker ── */
+.combat-tracker {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.06), transparent);
+    border: 1px solid var(--lore-crimson, #dc2626);
+    border-radius: 6px;
+    padding: 0.75rem;
+}
+
+.combat-combatant {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    margin: 0.25rem 0;
+    background-color: var(--lore-bg-elevated);
+    border: 1px solid var(--lore-border);
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.combat-combatant.enemy {
+    border-color: var(--lore-crimson, #dc2626);
+}
+
+.combat-combatant.player {
+    border-color: var(--lore-gold-dim, #b8860b);
+}
+
+.combat-emoji {
+    font-size: 1.2rem;
+    min-width: 28px;
+    text-align: center;
+}
+
+.combat-name {
+    font-family: var(--font-display);
+    color: var(--lore-gold-bright);
+    flex: 1;
+}
+
+.combat-level {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--lore-text-dim);
+}
+
+.combat-hp-bar {
+    width: 80px;
+    height: 10px;
+    background-color: var(--lore-bg);
+    border: 1px solid var(--lore-border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.combat-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #f59e0b);
+    transition: width 0.4s ease;
+}
+
+.combat-hp-text {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--lore-text-dim);
+    min-width: 50px;
+    text-align: right;
+}

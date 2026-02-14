@@ -27,7 +27,7 @@
             }
             else
             {
-                <span>@segment.Text</span>
+                @((MarkupString)RenderBasicMarkdown(segment.Text))
             }
         }
     }
@@ -47,6 +47,27 @@
         "user" => "play-action",
         _ => "play-scene",
     };
+
+    private static string RenderBasicMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        // Sanitize HTML entities first
+        text = text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+        // Bold: **text**
+        text = System.Text.RegularExpressions.Regex.Replace(text,
+            @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+
+        // Italic: *text*  (but not ** which is bold)
+        text = System.Text.RegularExpressions.Regex.Replace(text,
+            @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<em>$1</em>");
+
+        // Line breaks
+        text = text.Replace("\n\n", "</p><p>").Replace("\n", "<br/>");
+
+        return text;
+    }
 
     private List<TextSegment> ParseSegments()
     {
