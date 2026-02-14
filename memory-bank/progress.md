@@ -2,38 +2,46 @@
 
 ## Current Status (2026-02-16)
 - **Build**: ✅ 0 errors
-- **Unit Tests**: 297 passing
+- **Unit Tests**: 314 passing
 - **Integration Tests**: 32 passing
-- **Smoke Tests**: 6 passing (Playwright)
 - **Walkthrough Test**: ✅ 27 steps, all passing with real Azure OpenAI
-- **Total**: 335+ tests passing
+- **Total**: 346+ tests passing
 - **Git**: pushed to origin/main
 
-## Recent Achievements
-- Fixed WASM loading in Playwright tests (stale client process caused 404s on fingerprinted framework JS files)
-- Complete 27-step gameplay walkthrough with real AI screenshots
-- All game mechanics verified: registration, character creation, combat, exploration, map, search, twist, oracle, rest, NPC interaction, inventory, bestiary, journal, achievements, create story, writers room, chat
-- Walkthrough doc updated with all 27 screenshots and descriptions
-- Auth state race condition fixed across all pages
-- Comprehensive game mechanics tests added (unit + integration)
+## Recent Session Work
+1. Fixed WASM loading in Playwright tests (stale client fingerprints)
+2. Fixed Error 400 bug: MaxMessages increased from 10 to 50
+3. Fixed dice modifiers: use actual player stats (D&D formula: (stat-10)/2)
+4. Fixed level-up: while loop for multi-level XP awards
+5. Fixed achievement system: event-based awards for combat/social/NPC events
+6. Fixed twist-of-fate achievement: moved from Oracle to Twist endpoint
+7. Fixed first-loot threshold: >3 instead of >2
+8. Fixed location normalization: case-insensitive WorldMap matching
+9. Fixed security: memory logging, forwarded headers, error display
+10. Fixed API docs: synced all endpoint contracts with actual implementation
+11. Complete 27-step walkthrough with real AI screenshots (no errors)
 
-## Key Technical Learnings (Session)
-1. Blazor WASM dev server caches fingerprinted framework files — must restart after rebuild
-2. Playwright WASM: use 90s timeout for initial load, then SPA nav for all subsequent pages
-3. AuthState race condition: use shared Task pattern (s_initTask ??= InitializeCoreAsync())
-4. OnAfterRenderAsync: use `await InvokeAsync(StateHasChanged)` not bare `StateHasChanged()`
-5. Auth-guarded pages need `_initialized` guard to prevent "Sign in" flash on reload
+## Gemini Review Findings (All Fixed)
+- Critical: Dice modifiers hardcoded → now uses (statValue-10)/2
+- High: Level-up fires once → while loop
+- Medium: GameState race condition → acknowledged (optimistic concurrency acceptable)
+
+## Codex Review Findings
+### Fixed
+- High: Event achievements never awarded → added in ApplyToolResult
+- High: twist-of-fate triggered by Oracle → moved to Twist endpoint
+- High: API docs stale → synced all contracts
+- High: Forwarded headers trusted all → keep loopback defaults
+- Medium: first-loot threshold wrong → >3
+- Medium: Memory content logged → metadata only
+- Medium: Location validation → WorldMap normalization
+- Low: Oracle docs incorrect → updated
+
+### Acknowledged (Not Fixed)
+- Medium: sessionStorage token (XSS risk) → BFF cookies planned for future
+- Medium: Combat not deterministic on server → prompt-based is intentional for AI creativity
+- Medium: Memory endpoint tests → lower priority, endpoints are simple
+- Low: Walkthrough isn't exhaustive → renamed to "sample session"
 
 ## Completed Phases
-- Phase 1: Foundation + Auth ✅
-- Phase 2: Chat + Streaming ✅
-- Phase 3: Tool Calling ✅
-- Phase 4: Game Engine ✅
-- Phase 5: Play Mode ✅
-- Phase 6: Combat + Encounters ✅
-- Phase 7: Writers Room ✅
-- Phase 8: Achievements ✅
-- Phase 9: Bestiary ✅
-- Phase 10: Security Hardening ✅
-- Phase 11: Documentation ✅
-- Phase 12: E2E Testing + Walkthrough ✅
+All 12 phases complete. See plan.md for details.

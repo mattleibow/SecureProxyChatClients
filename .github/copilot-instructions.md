@@ -151,3 +151,10 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-16: Playwright WASM tests: the Blazor WASM dev server (blazor-devserver.dll) caches framework files. After rebuilding, you MUST restart the client process or framework JS returns 404 (fingerprinted filenames change). Error: "Failed to fetch dynamically imported module: dotnet.*.js"
 - 2026-02-16: Playwright WASM tests: use 90s timeout for first page load (WASM needs to download .NET runtime + assemblies). After initial load, SPA navigation is instant — use NavLink clicks, NOT page.goto() which triggers full WASM reload.
 - 2026-02-16: Walkthrough test pattern: register on /register → SPA redirects to /play → all subsequent navigation via NavLink clicks (never page.goto). This avoids WASM re-download on each step.
+- 2026-02-16: RollCheck modifier formula: (statValue - 10) / 2, matching D&D convention. AI must pass actual player stat value. Default statValue=10 gives modifier=0.
+- 2026-02-16: Level-up uses while loop consuming XP per level (threshold = level * 100). Multiple levels can be gained from one large XP award.
+- 2026-02-16: Event-based achievements (critical-hit, diplomat, first-contact) awarded in GameToolRegistry.ApplyToolResult. State-based achievements checked via Achievements.CheckAchievements.
+- 2026-02-16: MaxMessages=50 (was 10). Client sends up to 20 messages (TakeLast(20)). Too low causes Error 400 after ~5 gameplay turns.
+- 2026-02-16: X-Forwarded headers: do NOT clear KnownNetworks/KnownProxies (makes ALL sources trusted). Keep defaults (loopback), set ForwardLimit=2.
+- 2026-02-16: Never log user content (memory/chat). Log metadata only (type, userId, length) to prevent sensitive data in logs.
+- 2026-02-16: first-loot achievement threshold: Count > 3 (not >2). Characters start with 3 items (class weapon + shield/accessory + 2x potions counted as single slot).
