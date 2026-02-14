@@ -2,6 +2,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // PostgreSQL with pgvector for story memory (optional — falls back to in-memory)
 var vectorDb = builder.AddPostgres("postgres")
+    .WithImage("pgvector/pgvector")
+    .WithImageTag("pg17")
     .WithPgAdmin()
     .AddDatabase("vectorstore");
 

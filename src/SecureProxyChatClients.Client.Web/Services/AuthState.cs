@@ -4,6 +4,8 @@ namespace SecureProxyChatClients.Client.Web.Services;
 
 /// <summary>
 /// Client-side authentication state.
+/// Uses a static token field so all DI scope instances (including IHttpClientFactory handlers)
+/// share the same auth state. Raises <see cref="OnChange"/> so UI components can re-render.
 /// SECURITY NOTE: Token is stored in sessionStorage for page-refresh survival.
 /// For production apps requiring higher security, consider a BFF (Backend-for-Frontend)
 /// pattern with HttpOnly/Secure/SameSite cookies, or use short-lived access tokens
@@ -13,23 +15,27 @@ namespace SecureProxyChatClients.Client.Web.Services;
 public class AuthState(IJSRuntime jsRuntime)
 {
     private const string StorageKey = "auth_token";
-    private string? _accessToken;
-    private bool _initialized;
 
-    public string? AccessToken => _accessToken;
-    public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
+    // Static so all DI-scoped instances (including HttpClientFactory handler scope) share the token
+    private static string? s_accessToken;
+    private static bool s_initialized;
+
+    /// <summary>Raised when authentication state changes so UI components can re-render.</summary>
+    public static event Action? OnChange;
+
+    public string? AccessToken => s_accessToken;
+    public bool IsAuthenticated => !string.IsNullOrEmpty(s_accessToken);
 
     public async Task InitializeAsync()
     {
-        if (_initialized) return;
-        _initialized = true;
+        if (s_initialized) return;
+        s_initialized = true;
 
-        // If token was already set in memory (e.g., after login), no need to read from storage
-        if (!string.IsNullOrEmpty(_accessToken)) return;
+        if (!string.IsNullOrEmpty(s_accessToken)) return;
 
         try
         {
-            _accessToken = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", StorageKey);
+            s_accessToken = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", StorageKey);
         }
         catch
         {
@@ -39,23 +45,25 @@ public class AuthState(IJSRuntime jsRuntime)
 
     public async Task SetTokenAsync(string token)
     {
-        _accessToken = token;
-        _initialized = true;
+        s_accessToken = token;
+        s_initialized = true;
         try
         {
             await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", StorageKey, token);
         }
         catch { /* SSR fallback */ }
+        OnChange?.Invoke();
     }
 
     public async Task ClearAsync()
     {
-        _accessToken = null;
-        _initialized = false;
+        s_accessToken = null;
+        s_initialized = false;
         try
         {
             await jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", StorageKey);
         }
         catch { /* SSR fallback */ }
+        OnChange?.Invoke();
     }
 }

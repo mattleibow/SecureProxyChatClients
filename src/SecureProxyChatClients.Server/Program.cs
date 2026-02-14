@@ -162,6 +162,13 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
 
+    // Initialize vector DB if available
+    var vectorDb = scope.ServiceProvider.GetService<VectorDbContext>();
+    if (vectorDb is not null)
+    {
+        await vectorDb.Database.EnsureCreatedAsync();
+    }
+
     // Only seed test data in Development or when explicitly configured
     if (app.Environment.IsDevelopment() || app.Configuration.GetValue("SeedUser:Enabled", false))
     {

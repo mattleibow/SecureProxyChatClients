@@ -85,6 +85,8 @@
     </nav>
 </div>
 
+@implements IDisposable
+
 @code {
     private bool collapseNavMenu = true;
 
@@ -99,14 +101,25 @@
     {
         if (firstRender)
         {
+            AuthState.OnChange += HandleAuthStateChanged;
             await AuthState.InitializeAsync();
             StateHasChanged();
         }
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LogoutAsync()
     {
         await AuthState.ClearAsync();
         Nav.NavigateTo("/", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= HandleAuthStateChanged;
     }
 }

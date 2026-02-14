@@ -23,12 +23,21 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         };
 
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
+        var problemDetails = new ProblemDetails
         {
             Status = statusCode,
             Title = title,
             Type = $"https://httpstatuses.com/{statusCode}",
-        }, cancellationToken);
+        };
+
+        // Include detail in development for debugging (never in production)
+        var env = httpContext.RequestServices?.GetService<IWebHostEnvironment>();
+        if (env is not null && env.IsDevelopment())
+        {
+            problemDetails.Detail = exception.ToString();
+        }
+
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;
     }
