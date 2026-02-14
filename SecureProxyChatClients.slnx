@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SecureProxyChatClients.AppHost/SecureProxyChatClients.AppHost.csproj" />
+    <Project Path="src/SecureProxyChatClients.Client.Web/SecureProxyChatClients.Client.Web.csproj" />
+    <Project Path="src/SecureProxyChatClients.Server/SecureProxyChatClients.Server.csproj" />
+    <Project Path="src/SecureProxyChatClients.ServiceDefaults/SecureProxyChatClients.ServiceDefaults.csproj" />
+    <Project Path="src/SecureProxyChatClients.Shared/SecureProxyChatClients.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SecureProxyChatClients.Tests.Integration/SecureProxyChatClients.Tests.Integration.csproj" />
+    <Project Path="tests/SecureProxyChatClients.Tests.Playwright/SecureProxyChatClients.Tests.Playwright.csproj" />
+    <Project Path="tests/SecureProxyChatClients.Tests.Smoke/SecureProxyChatClients.Tests.Smoke.csproj" />
+    <Project Path="tests/SecureProxyChatClients.Tests.Unit/SecureProxyChatClients.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

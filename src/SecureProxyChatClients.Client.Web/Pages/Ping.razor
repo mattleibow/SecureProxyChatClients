@@ -1,0 +1,60 @@
+@page "/ping"
+@using SecureProxyChatClients.Client.Web.Services
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Ping</PageTitle>
+
+<h3>Ping (Protected Endpoint)</h3>
+
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="alert alert-warning" data-testid="ping-unauthenticated">
+        You are not logged in. <a href="/login">Login first</a>.
+    </div>
+}
+else if (pingResult is not null)
+{
+    <div class="alert alert-success" data-testid="ping-result">
+        <strong>User:</strong> @pingResult.User<br />
+        <strong>Authenticated:</strong> @pingResult.Authenticated
+    </div>
+}
+else if (errorMessage is not null)
+{
+    <div class="alert alert-danger" data-testid="ping-error">@errorMessage</div>
+}
+
+<button class="btn btn-primary" @onclick="CallPing" disabled="@(!AuthState.IsAuthenticated || isLoading)" data-testid="ping-button">
+    @(isLoading ? "Calling..." : "Call /api/ping")
+</button>
+
+@code {
+    private PingResponse? pingResult;
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task CallPing()
+    {
+        isLoading = true;
+        errorMessage = null;
+        pingResult = null;
+
+        try
+        {
+            pingResult = await Http.GetFromJsonAsync<PingResponse>("/api/ping");
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Request failed: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private sealed record PingResponse(string? User, bool Authenticated);
+}
