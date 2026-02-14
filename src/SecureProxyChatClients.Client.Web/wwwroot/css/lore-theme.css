@@ -953,3 +953,27 @@ main {
     60% { transform: translateX(-50%) scale(1.1) translateY(-10px); opacity: 1; }
     100% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
 }
+
+/* Auth pages */
+.auth-container {
+    max-width: 400px;
+    margin: 3rem auto;
+    padding: 2rem;
+    background: var(--lore-bg-secondary, #1a1a2e);
+    border-radius: 12px;
+    border: 1px solid var(--lore-border, #2d2d4e);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.auth-title {
+    text-align: center;
+    color: var(--lore-gold, #d4a574);
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    text-align: center;
+    color: var(--lore-text-secondary, #8b8ba0);
+    margin-bottom: 1.5rem;
+    font-style: italic;
+}

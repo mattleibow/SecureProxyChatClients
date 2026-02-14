@@ -18,7 +18,8 @@ public class ChatEndpointTests : IAsyncLifetime
     {
         var cts = new CancellationTokenSource(DefaultTimeout);
         var appHost = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.SecureProxyChatClients_AppHost>(cts.Token);
+            .CreateAsync<Projects.SecureProxyChatClients_AppHost>(
+                ["--AI:Provider=Fake"], cts.Token);
 
         _app = await appHost.BuildAsync(cts.Token);
         await _app.StartAsync(cts.Token);

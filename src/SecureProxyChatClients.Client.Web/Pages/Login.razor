@@ -6,28 +6,35 @@
 @inject AuthState AuthState
 @inject NavigationManager Nav
 
-<PageTitle>Login</PageTitle>
+<PageTitle>Login — LoreEngine</PageTitle>
 
-<h3>Login</h3>
+<div class="auth-container">
+    <h3 class="auth-title">⚔️ Welcome Back, Adventurer</h3>
+    <p class="auth-subtitle">Sign in to continue your quest</p>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-danger" data-testid="login-error">@errorMessage</div>
-}
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" data-testid="login-error">@errorMessage</div>
+    }
 
-<form @onsubmit="HandleLogin" data-testid="login-form">
-    <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" id="email" class="form-control" @bind="email" data-testid="login-email" required />
+    <form @onsubmit="HandleLogin" data-testid="login-form">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" class="form-control" @bind="email" data-testid="login-email" required />
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-control" @bind="password" data-testid="login-password" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100" data-testid="login-submit" disabled="@isLoading">
+            @(isLoading ? "Signing in..." : "Sign In")
+        </button>
+    </form>
+
+    <div class="mt-3 text-center">
+        <a href="/register" data-testid="login-register-link">New adventurer? Create an account</a>
     </div>
-    <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" id="password" class="form-control" @bind="password" data-testid="login-password" required />
-    </div>
-    <button type="submit" class="btn btn-primary" data-testid="login-submit" disabled="@isLoading">
-        @(isLoading ? "Logging in..." : "Login")
-    </button>
-</form>
+</div>
 
 @code {
     private string email = string.Empty;
@@ -49,16 +56,24 @@
                 var json = await response.Content.ReadFromJsonAsync<JsonElement>();
                 var token = json.GetProperty("accessToken").GetString()!;
                 await AuthState.SetTokenAsync(token);
-                Nav.NavigateTo("/ping");
+                Nav.NavigateTo("/play");
+            }
+            else if ((int)response.StatusCode == 429)
+            {
+                errorMessage = "Too many attempts. Please wait a moment.";
             }
             else
             {
-                errorMessage = "Login failed. Please check your credentials.";
+                errorMessage = "Invalid email or password. Please try again.";
             }
         }
-        catch (Exception ex)
+        catch (HttpRequestException)
         {
-            errorMessage = $"Error: {ex.Message}";
+            errorMessage = "Connection error. Please check your network.";
+        }
+        catch
+        {
+            errorMessage = "Something went wrong. Please try again.";
         }
         finally
         {

@@ -12,12 +12,14 @@ using SecureProxyChatClients.Server.VectorStore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load local secrets file if present (gitignored)
+// Load local secrets file if present (gitignored) — loaded early so env vars can override
 var secretsPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "secrets.json");
 if (File.Exists(secretsPath))
 {
     builder.Configuration.AddJsonFile(Path.GetFullPath(secretsPath), optional: true, reloadOnChange: false);
 }
+// Re-add env vars so they override secrets.json
+builder.Configuration.AddEnvironmentVariables();
 
 builder.AddServiceDefaults();
 

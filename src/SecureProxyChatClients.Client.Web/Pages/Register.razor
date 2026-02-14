@@ -1,0 +1,119 @@
+@page "/register"
+@using SecureProxyChatClients.Client.Web.Services
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject HttpClient Http
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Register — LoreEngine</PageTitle>
+
+<div class="auth-container">
+    <h3 class="auth-title">⚔️ Create Your Account</h3>
+    <p class="auth-subtitle">Join the realm and begin your adventure</p>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" data-testid="register-error">@errorMessage</div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success" data-testid="register-success">@successMessage</div>
+    }
+
+    <form @onsubmit="HandleRegister" data-testid="register-form">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" class="form-control" @bind="email" data-testid="register-email" required />
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-control" @bind="password" data-testid="register-password" required />
+            <div class="form-text">At least 8 characters with a digit</div>
+        </div>
+        <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="form-control" @bind="confirmPassword" data-testid="register-confirm" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100" data-testid="register-submit" disabled="@isLoading">
+            @(isLoading ? "Creating account..." : "Create Account")
+        </button>
+    </form>
+
+    <div class="mt-3 text-center">
+        <a href="/login" data-testid="register-login-link">Already have an account? Sign in</a>
+    </div>
+</div>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        if (password != confirmPassword)
+        {
+            errorMessage = "Passwords do not match.";
+            isLoading = false;
+            return;
+        }
+
+        if (password.Length < 8)
+        {
+            errorMessage = "Password must be at least 8 characters.";
+            isLoading = false;
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/register", new { email, password });
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Auto-login after registration
+                var loginResponse = await Http.PostAsJsonAsync("/login", new { email, password });
+                if (loginResponse.IsSuccessStatusCode)
+                {
+                    var json = await loginResponse.Content.ReadFromJsonAsync<JsonElement>();
+                    var token = json.GetProperty("accessToken").GetString()!;
+                    await AuthState.SetTokenAsync(token);
+                    Nav.NavigateTo("/play");
+                }
+                else
+                {
+                    successMessage = "Account created! You can now sign in.";
+                    Nav.NavigateTo("/login");
+                }
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                errorMessage = body.Contains("DuplicateUserName", StringComparison.OrdinalIgnoreCase)
+                    ? "An account with this email already exists."
+                    : "Registration failed. Please try a stronger password.";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Connection error. Please try again.";
+        }
+        catch
+        {
+            errorMessage = "Something went wrong. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
