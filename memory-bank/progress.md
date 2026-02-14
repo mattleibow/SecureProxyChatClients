@@ -167,5 +167,13 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - [x] AppHost passes AI:Provider config to server via WithEnvironment
 - [x] Added 3 auth integration tests (register+login, duplicate email, wrong password)
 - [x] Integration tests reliably use Fake provider via command-line args
-- [x] **Total: 253 unit tests + 7 integration tests = 260 tests, all passing**
+- [x] **Total: 256 unit tests + 7 integration tests = 263 tests, all passing**
 - [x] Pushed to GitHub: `mattleibow/SecureProxyChatClients`
+
+### Game Enhancements (2026-02-18)
+- [x] Item rarity system (common/uncommon/rare/epic/legendary) with color-coded CSS
+- [x] Success streak tracking with 🔥 visual indicator
+- [x] Health critical warning animation (<25% HP pulse-red)
+- [x] GiveItem tool updated with rarity parameter
+- [x] DiceCheckResult processing tracks streaks
+- [x] 3 new unit tests for streaks and rarity
