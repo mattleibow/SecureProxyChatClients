@@ -130,6 +130,19 @@ builder.Services.AddRateLimiter(options =>
             AutoReplenishment = true,
         });
     });
+
+    // Stricter rate limiting for auth endpoints (login/register) to prevent brute-force
+    options.AddPolicy("auth", httpContext =>
+    {
+        string partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter($"auth-{partitionKey}", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0,
+        });
+    });
 });
 
 // Forwarded headers — ensures correct client IP behind reverse proxies (load balancers, Azure App Service)
@@ -204,7 +217,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
-app.MapIdentityApi<IdentityUser>();
+app.MapIdentityApi<IdentityUser>()
+    .RequireRateLimiting("auth");
 app.MapChatEndpoints();
 app.MapSessionEndpoints();
 app.MapPlayEndpoints();

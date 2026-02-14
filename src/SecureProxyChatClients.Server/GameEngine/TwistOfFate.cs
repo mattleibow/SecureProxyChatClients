@@ -6,8 +6,6 @@ namespace SecureProxyChatClients.Server.GameEngine;
 /// </summary>
 public static class TwistOfFate
 {
-    private static readonly Random _rng = new();
-
     public sealed record Twist(string Title, string Prompt, string Emoji, string Category);
 
     private static readonly Twist[] Twists =
@@ -40,7 +38,7 @@ public static class TwistOfFate
     /// <summary>
     /// Get a random twist of fate.
     /// </summary>
-    public static Twist GetRandomTwist() => Twists[_rng.Next(Twists.Length)];
+    public static Twist GetRandomTwist() => Twists[Random.Shared.Next(Twists.Length)];
 
     /// <summary>
     /// Get a twist from a specific category.
@@ -48,6 +46,6 @@ public static class TwistOfFate
     public static Twist GetTwistByCategory(string category)
     {
         var filtered = Twists.Where(t => t.Category.Equals(category, StringComparison.OrdinalIgnoreCase)).ToArray();
-        return filtered.Length > 0 ? filtered[_rng.Next(filtered.Length)] : GetRandomTwist();
+        return filtered.Length > 0 ? filtered[Random.Shared.Next(filtered.Length)] : GetRandomTwist();
     }
 }

@@ -18,11 +18,18 @@ public sealed class CopilotCliChatClient(ILogger<CopilotCliChatClient> logger, s
 
         var psi = new ProcessStartInfo("copilot")
         {
-            Arguments = $"""-p "{EscapeForShell(prompt)}" --model {model} --available-tools "" --allow-all-tools""",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        // Use ArgumentList to prevent shell injection — never interpolate user input into Arguments
+        psi.ArgumentList.Add("-p");
+        psi.ArgumentList.Add(prompt);
+        psi.ArgumentList.Add("--model");
+        psi.ArgumentList.Add(model);
+        psi.ArgumentList.Add("--available-tools");
+        psi.ArgumentList.Add("");
+        psi.ArgumentList.Add("--allow-all-tools");
 
         try
         {
@@ -72,9 +79,6 @@ public sealed class CopilotCliChatClient(ILogger<CopilotCliChatClient> logger, s
     public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
     public void Dispose() { }
-
-    private static string EscapeForShell(string input) =>
-        input.Replace("\"", "\\\"").Replace("\n", " ");
 
     private static string StripCopilotFooter(string output)
     {

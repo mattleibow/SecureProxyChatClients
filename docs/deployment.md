@@ -277,7 +277,7 @@ The ServiceDefaults project registers two health check endpoints (mapped in deve
 The AI provider health check sends a test message with a 10-second timeout to verify connectivity.
 
 > [!NOTE]
-> Health check endpoints are mapped only when `ASPNETCORE_ENVIRONMENT=Development`. To expose them in production, update the health check mapping in `src/SecureProxyChatClients.ServiceDefaults/Extensions.cs`.
+> Health check endpoints are mapped in development by default. To expose them in production, set `HealthChecks:Enabled=true` in your environment configuration (e.g., `HealthChecks__Enabled=true` as an environment variable).
 
 ### OpenTelemetry
 
@@ -348,7 +348,7 @@ Use this checklist before deploying to a production environment.
 - [ ] **Set `Security:MaxMessages` and `Security:MaxMessageLength`** to prevent abuse.
 - [ ] **Review security headers.** The server sets `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, and `Permissions-Policy` automatically. Verify these match your requirements.
 - [ ] **Configure audit log monitoring.** Forward logs to a centralized system and alert on `401`/`403` patterns.
-- [ ] **Expose health checks in production.** Update `ServiceDefaults/Extensions.cs` to map `/health` and `/alive` outside development if your infrastructure requires them.
+- [ ] **Expose health checks in production.** Set `HealthChecks:Enabled=true` in your production configuration if your infrastructure requires `/health` and `/alive` endpoints.
 - [ ] **Enable OTLP export.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` to send metrics and traces to Azure Monitor, Prometheus, or your observability platform.
 - [ ] **Consider Microsoft Entra ID** for enterprise authentication instead of the built-in Identity system.
 - [ ] **Restrict Azure OpenAI network access** with private endpoints and virtual network integration.

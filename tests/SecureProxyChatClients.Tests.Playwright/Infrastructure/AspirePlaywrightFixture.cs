@@ -101,7 +101,7 @@ public sealed class AspirePlaywrightFixture : IAsyncLifetime
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = "run --no-build",
+            Arguments = "run",
             WorkingDirectory = projectDir,
             UseShellExecute = false,
             RedirectStandardOutput = true,

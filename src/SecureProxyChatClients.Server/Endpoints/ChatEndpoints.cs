@@ -212,6 +212,7 @@ public static class ChatEndpoints
         [FromBody] ChatRequest request,
         IChatClient chatClient,
         InputValidator inputValidator,
+        ContentFilter contentFilter,
         SystemPromptService systemPromptService,
         IConversationStore conversationStore,
         ILogger<IConversationStore> logger,
@@ -289,8 +290,15 @@ public static class ChatEndpoints
             {
                 if (update.Text is { Length: > 0 } text)
                 {
-                    fullText.Append(text);
-                    string data = JsonSerializer.Serialize(new { text });
+                    // Filter AI output for XSS/injection before streaming to client
+                    var filtered = contentFilter.FilterResponse(new Shared.Contracts.ChatResponse
+                    {
+                        Messages = [new ChatMessageDto { Role = "assistant", Content = text }]
+                    });
+                    string sanitizedText = filtered.Messages[0].Content ?? text;
+
+                    fullText.Append(sanitizedText);
+                    string data = JsonSerializer.Serialize(new { text = sanitizedText });
                     await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", ct);
                     await httpContext.Response.Body.FlushAsync(ct);
                 }
