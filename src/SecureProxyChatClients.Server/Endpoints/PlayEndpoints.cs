@@ -162,8 +162,19 @@ public static class PlayEndpoints
         HttpContext httpContext,
         IGameStateStore gameStateStore,
         [FromBody] NewGameRequest request,
+        InputValidator inputValidator,
         CancellationToken ct)
     {
+        // Validate character name against injection patterns
+        if (!string.IsNullOrWhiteSpace(request.CharacterName))
+        {
+            (bool isValid, string? error, _) = inputValidator.ValidateAndSanitize(
+                new ChatRequest { Messages = [new ChatMessageDto { Role = "user", Content = request.CharacterName }] });
+            
+            if (!isValid)
+                return Results.BadRequest(new { error = error ?? "Invalid character name." });
+        }
+
         string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null) return Results.Unauthorized();
 
@@ -296,7 +307,14 @@ public static class PlayEndpoints
                 }
 
                 // Final response — save state and return
-                await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+                try
+                {
+                    await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("Concurrency"))
+                {
+                    return Results.Conflict(new { error = "Game state changed by another request. Please try again." });
+                }
 
                 var responseMessages = aiResponse.Messages
                     .Where(m => m.Text is { Length: > 0 })
@@ -360,7 +378,15 @@ public static class PlayEndpoints
             }
         }
 
-        await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+        try
+        {
+            await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Concurrency"))
+        {
+            return Results.Conflict(new { error = "Game state changed by another request. Please try again." });
+        }
+        
         return Results.Ok(new PlayResponse
         {
             Messages = [new ChatMessageDto { Role = "assistant", Content = "The threads of fate grow tangled... (Tool limit reached)" }],
@@ -548,12 +574,18 @@ public static class PlayEndpoints
         // Persist
         if (fullText.Length > 0)
         {
-            await conversationStore.AppendMessagesAsync(sessionId,
-                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], CancellationToken.None);
-            
-            // Store the narrative as a story memory (truncated for brevity)
-            string summary = fullText.Length > 200 ? fullText.ToString()[..200] + "..." : fullText.ToString();
-            await memoryService.StoreMemoryAsync(userId, sessionId, summary, "event", ct: CancellationToken.None);
+            // Use a short timeout for persistence
+            using var saveCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try
+            {
+                await conversationStore.AppendMessagesAsync(sessionId,
+                    [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], saveCts.Token);
+                
+                // Store the narrative as a story memory (truncated for brevity)
+                string summary = fullText.Length > 200 ? fullText.ToString()[..200] + "..." : fullText.ToString();
+                await memoryService.StoreMemoryAsync(userId, sessionId, summary, "event", ct: saveCts.Token);
+            }
+            catch (OperationCanceledException) { /* Best effort save */ }
         }
 
         // Send state + done (safe — client may have disconnected)
@@ -630,10 +662,18 @@ public static class PlayEndpoints
         HttpContext httpContext,
         [FromBody] OracleRequest request,
         IChatClient chatClient,
+        InputValidator inputValidator,
         IGameStateStore gameStateStore,
         IStoryMemoryService memoryService,
         CancellationToken ct)
     {
+        // Validate input against injection attacks
+        (bool isValid, string? error, _) = inputValidator.ValidateAndSanitize(
+            new ChatRequest { Messages = [new ChatMessageDto { Role = "user", Content = request.Question }] });
+            
+        if (!isValid)
+            return Results.BadRequest(new { error = error ?? "Invalid question." });
+
         string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null) return Results.Unauthorized();
 

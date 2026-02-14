@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.VectorStore;
+using SecureProxyChatClients.Shared.Contracts;
 
 namespace SecureProxyChatClients.Server.Endpoints;
 
@@ -50,6 +52,7 @@ public static class MemoryEndpoints
         HttpContext httpContext,
         StoreMemoryRequest request,
         IStoryMemoryService memoryService,
+        InputValidator inputValidator,
         CancellationToken ct)
     {
         string? userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -60,6 +63,13 @@ public static class MemoryEndpoints
 
         if (request.Content.Length > 2000)
             return Results.BadRequest(new { error = "Content too long (max 2000 chars)." });
+
+        // Validate content against injection patterns
+        (bool isValid, string? error, _) = inputValidator.ValidateAndSanitize(
+            new ChatRequest { Messages = [new ChatMessageDto { Role = "user", Content = request.Content }] });
+            
+        if (!isValid)
+            return Results.BadRequest(new { error = error ?? "Invalid content." });
 
         await memoryService.StoreMemoryAsync(
             userId,

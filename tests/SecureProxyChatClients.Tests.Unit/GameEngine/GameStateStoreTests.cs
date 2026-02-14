@@ -23,6 +23,7 @@ public class GameStateStoreTests
 
         var state1 = await store.GetOrCreatePlayerStateAsync("user1");
         state1.Name = "Hero";
+        await store.SavePlayerStateAsync("user1", state1);
         var state2 = await store.GetOrCreatePlayerStateAsync("user1");
 
         Assert.Equal("Hero", state2.Name);

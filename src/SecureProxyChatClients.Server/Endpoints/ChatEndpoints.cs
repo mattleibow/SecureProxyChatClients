@@ -313,8 +313,14 @@ public static class ChatEndpoints
         // Persist assistant response
         if (fullText.Length > 0)
         {
-            await conversationStore.AppendMessagesAsync(sessionId,
-                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], CancellationToken.None);
+            // Use a short timeout for persistence to ensure we don't block server shutdown indefinitely
+            using var saveCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try 
+            {
+                await conversationStore.AppendMessagesAsync(sessionId,
+                    [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], saveCts.Token);
+            }
+            catch (OperationCanceledException) { /* Best effort save */ }
         }
 
         // Send done event with sessionId

@@ -60,6 +60,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // AI services
 builder.Services.AddAiServices(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddCheck<AiProviderHealthCheck>("ai-provider", tags: ["ready"]);
 
 // Security services
 builder.Services.Configure<SecurityOptions>(
@@ -142,6 +144,21 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Security audit logging middleware
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == StatusCodes.Status401Unauthorized ||
+        context.Response.StatusCode == StatusCodes.Status403Forbidden)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        var user = context.User.Identity?.Name ?? "anonymous";
+        logger.LogWarning("Security Audit: Access denied ({StatusCode}) for user {User} at {Path}",
+            context.Response.StatusCode, user, context.Request.Path);
+    }
+});
+
 app.UseHttpsRedirection();
 
 if (!app.Environment.IsDevelopment())
@@ -150,6 +167,23 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+
+// Audit logging for security events
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode is 401 or 403)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("SecurityAudit");
+        logger.LogWarning("Access denied: {StatusCode} {Method} {Path} from {User}",
+            context.Response.StatusCode,
+            context.Request.Method,
+            context.Request.Path,
+            context.User.Identity?.Name ?? "anonymous");
+    }
+});
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();

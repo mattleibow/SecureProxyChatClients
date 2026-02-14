@@ -21,6 +21,7 @@ public sealed class PlayerState
     };
     public HashSet<string> VisitedLocations { get; set; } = ["The Crossroads"];
     public HashSet<string> UnlockedAchievements { get; set; } = [];
+    public int Version { get; set; }
 }
 
 public sealed class InventoryItem
