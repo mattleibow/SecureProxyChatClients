@@ -492,3 +492,6 @@ secrets.json
 # Dev secrets
 appsettings.Development.json
 *.png
+
+# Allow documentation screenshots
+!docs/game/screenshots/*.png
