@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
+using SecureProxyChatClients.Server.Data;
 using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.Services;
 using SecureProxyChatClients.Server.Tools;
@@ -30,18 +32,45 @@ public static class ChatEndpoints
     }
 
     private static async Task<IResult> HandleChatAsync(
+        HttpContext httpContext,
         [FromBody] ChatRequest request,
         IChatClient chatClient,
         InputValidator inputValidator,
         ContentFilter contentFilter,
         SystemPromptService systemPromptService,
         ServerToolRegistry serverToolRegistry,
+        IConversationStore conversationStore,
         CancellationToken cancellationToken)
     {
         // Validate and sanitize input
         (bool isValid, string? error, ChatRequest? sanitizedRequest) = inputValidator.ValidateAndSanitize(request);
         if (!isValid)
             return Results.BadRequest(new { error });
+
+        string userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        // Session management: use provided or auto-create
+        string sessionId;
+        if (sanitizedRequest!.SessionId is { Length: > 0 } sid)
+        {
+            string? owner = await conversationStore.GetSessionOwnerAsync(sid, cancellationToken);
+            if (owner is null)
+                return Results.NotFound(new { error = "Session not found." });
+            if (owner != userId)
+                return Results.Forbid();
+            sessionId = sid;
+        }
+        else
+        {
+            sessionId = await conversationStore.CreateSessionAsync(userId, cancellationToken);
+        }
+
+        // Persist user messages
+        var userMessages = sanitizedRequest.Messages
+            .Where(m => m.Role == "user")
+            .ToList();
+        if (userMessages.Count > 0)
+            await conversationStore.AppendMessagesAsync(sessionId, userMessages, cancellationToken);
 
         // Prepend system prompt
         IReadOnlyList<ChatMessageDto> messagesWithSystem =
@@ -50,10 +79,11 @@ public static class ChatEndpoints
         // Convert DTOs to MEAI ChatMessages
         List<ChatMessage> chatMessages = ConvertToChatMessages(messagesWithSystem);
 
-        // Build chat options with server tools
+        // Build chat options with server tools and response format
         ChatOptions chatOptions = new()
         {
             Tools = [.. serverToolRegistry.Tools],
+            ResponseFormat = ConvertResponseFormat(sanitizedRequest.Options?.ResponseFormat),
         };
 
         // Tool execution loop
@@ -70,8 +100,14 @@ public static class ChatEndpoints
             if (functionCalls.Count == 0)
             {
                 // No tool calls — return the final response
-                Shared.Contracts.ChatResponse response = ConvertToContractResponse(aiResponse);
+                Shared.Contracts.ChatResponse response = ConvertToContractResponse(aiResponse, sessionId);
                 response = contentFilter.FilterResponse(response);
+
+                // Persist assistant messages
+                var assistantMessages = response.Messages.Where(m => m.Role == "assistant").ToList();
+                if (assistantMessages.Count > 0)
+                    await conversationStore.AppendMessagesAsync(sessionId, assistantMessages, cancellationToken);
+
                 return Results.Ok(response);
             }
 
@@ -107,7 +143,7 @@ public static class ChatEndpoints
             if (clientToolCalls.Count > 0)
             {
                 Shared.Contracts.ChatResponse response = ConvertToContractResponseWithToolCalls(
-                    aiResponse, clientToolCalls);
+                    aiResponse, clientToolCalls, sessionId);
                 response = contentFilter.FilterResponse(response);
                 return Results.Ok(response);
             }
@@ -119,6 +155,7 @@ public static class ChatEndpoints
         return Results.Ok(new Shared.Contracts.ChatResponse
         {
             Messages = [new ChatMessageDto { Role = "assistant", Content = "Tool processing limit reached." }],
+            SessionId = sessionId,
         });
     }
 
@@ -128,6 +165,7 @@ public static class ChatEndpoints
         IChatClient chatClient,
         InputValidator inputValidator,
         SystemPromptService systemPromptService,
+        IConversationStore conversationStore,
         CancellationToken cancellationToken)
     {
         // Validate and sanitize input
@@ -138,6 +176,31 @@ public static class ChatEndpoints
             await httpContext.Response.WriteAsJsonAsync(new { error }, cancellationToken);
             return;
         }
+
+        string userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        // Session management
+        string sessionId;
+        if (sanitizedRequest!.SessionId is { Length: > 0 } sid)
+        {
+            string? owner = await conversationStore.GetSessionOwnerAsync(sid, cancellationToken);
+            if (owner is null || owner != userId)
+            {
+                httpContext.Response.StatusCode = owner is null ? 404 : 403;
+                await httpContext.Response.WriteAsJsonAsync(new { error = "Session access denied." }, cancellationToken);
+                return;
+            }
+            sessionId = sid;
+        }
+        else
+        {
+            sessionId = await conversationStore.CreateSessionAsync(userId, cancellationToken);
+        }
+
+        // Persist user messages
+        var userMessages = sanitizedRequest.Messages.Where(m => m.Role == "user").ToList();
+        if (userMessages.Count > 0)
+            await conversationStore.AppendMessagesAsync(sessionId, userMessages, cancellationToken);
 
         // Prepend system prompt
         IReadOnlyList<ChatMessageDto> messagesWithSystem =
@@ -151,20 +214,30 @@ public static class ChatEndpoints
         httpContext.Response.Headers.CacheControl = "no-cache";
         httpContext.Response.Headers.Connection = "keep-alive";
 
-        // Stream from IChatClient
+        // Stream from IChatClient and collect full response for persistence
+        var fullText = new System.Text.StringBuilder();
         await foreach (ChatResponseUpdate update in chatClient.GetStreamingResponseAsync(
             chatMessages, cancellationToken: cancellationToken))
         {
             if (update.Text is { Length: > 0 } text)
             {
+                fullText.Append(text);
                 string data = JsonSerializer.Serialize(new { text });
                 await httpContext.Response.WriteAsync($"event: text-delta\ndata: {data}\n\n", cancellationToken);
                 await httpContext.Response.Body.FlushAsync(cancellationToken);
             }
         }
 
-        // Send done event
-        await httpContext.Response.WriteAsync("event: done\ndata: {}\n\n", cancellationToken);
+        // Persist assistant response
+        if (fullText.Length > 0)
+        {
+            await conversationStore.AppendMessagesAsync(sessionId,
+                [new ChatMessageDto { Role = "assistant", Content = fullText.ToString() }], cancellationToken);
+        }
+
+        // Send done event with sessionId
+        string doneData = JsonSerializer.Serialize(new { sessionId });
+        await httpContext.Response.WriteAsync($"event: done\ndata: {doneData}\n\n", cancellationToken);
         await httpContext.Response.Body.FlushAsync(cancellationToken);
     }
 
@@ -214,7 +287,8 @@ public static class ChatEndpoints
     }
 
     private static Shared.Contracts.ChatResponse ConvertToContractResponse(
-        Microsoft.Extensions.AI.ChatResponse aiResponse)
+        Microsoft.Extensions.AI.ChatResponse aiResponse,
+        string? sessionId = null)
     {
         List<ChatMessageDto> messages = [];
         foreach (ChatMessage msg in aiResponse.Messages)
@@ -226,12 +300,13 @@ public static class ChatEndpoints
             });
         }
 
-        return new Shared.Contracts.ChatResponse { Messages = messages };
+        return new Shared.Contracts.ChatResponse { Messages = messages, SessionId = sessionId };
     }
 
     private static Shared.Contracts.ChatResponse ConvertToContractResponseWithToolCalls(
         Microsoft.Extensions.AI.ChatResponse aiResponse,
-        List<FunctionCallContent> clientToolCalls)
+        List<FunctionCallContent> clientToolCalls,
+        string? sessionId = null)
     {
         List<ChatMessageDto> messages = [];
 
@@ -255,6 +330,28 @@ public static class ChatEndpoints
             ToolCalls = toolCallDtos,
         });
 
-        return new Shared.Contracts.ChatResponse { Messages = messages };
+        return new Shared.Contracts.ChatResponse { Messages = messages, SessionId = sessionId };
+    }
+
+    private static ChatResponseFormat? ConvertResponseFormat(JsonElement? responseFormat)
+    {
+        if (responseFormat is null || responseFormat.Value.ValueKind == JsonValueKind.Undefined)
+            return null;
+
+        if (responseFormat.Value.ValueKind == JsonValueKind.String)
+        {
+            string formatStr = responseFormat.Value.GetString()!;
+            return formatStr.Equals("json", StringComparison.OrdinalIgnoreCase)
+                ? ChatResponseFormat.Json
+                : ChatResponseFormat.Text;
+        }
+
+        // Object with schema — treat as JSON schema response format
+        if (responseFormat.Value.ValueKind == JsonValueKind.Object)
+        {
+            return ChatResponseFormat.ForJsonSchema(responseFormat.Value);
+        }
+
+        return null;
     }
 }

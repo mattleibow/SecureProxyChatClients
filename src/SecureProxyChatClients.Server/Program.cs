@@ -46,6 +46,9 @@ builder.Services.AddSingleton<InputValidator>();
 builder.Services.AddSingleton<ContentFilter>();
 builder.Services.AddSingleton<SystemPromptService>();
 
+// Conversation persistence
+builder.Services.AddScoped<IConversationStore, EfConversationStore>();
+
 // Rate limiting
 int permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 30);
 int windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
@@ -87,6 +90,7 @@ app.UseRateLimiter();
 
 app.MapIdentityApi<IdentityUser>();
 app.MapChatEndpoints();
+app.MapSessionEndpoints();
 
 app.MapGet("/api/ping", (HttpContext context) =>
 {

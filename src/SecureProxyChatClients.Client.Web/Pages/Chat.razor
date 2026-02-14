@@ -21,60 +21,90 @@
 }
 else
 {
-    <div class="chat-container" data-testid="chat-container">
-        <div class="chat-messages border rounded p-3 mb-3" style="height: 400px; overflow-y: auto;" data-testid="chat-messages">
-            @foreach (var msg in messages)
-            {
-                <div class="mb-2 @(msg.Role == "user" ? "text-end" : "")">
-                    <span class="badge @(msg.Role == "user" ? "bg-primary" : "bg-secondary")">@msg.Role</span>
-                    <span class="ms-2" data-testid="chat-message-content">@msg.Content</span>
-                </div>
-            }
-            @if (isStreaming && !string.IsNullOrEmpty(streamingContent))
-            {
-                <div class="mb-2">
-                    <span class="badge bg-secondary">assistant</span>
-                    <span class="ms-2" data-testid="chat-streaming-content">@streamingContent</span>
-                    <span class="spinner-border spinner-border-sm ms-1" role="status"></span>
-                </div>
-            }
-        </div>
-
-        <div class="input-group" data-testid="chat-input-group">
-            <input type="text" class="form-control" placeholder="Type a message..."
-                   @bind="userInput" @bind:event="oninput"
-                   @onkeydown="HandleKeyDown"
-                   disabled="@isStreaming"
-                   data-testid="chat-input" />
-            <button class="btn btn-primary" @onclick="SendMessage"
-                    disabled="@(isStreaming || string.IsNullOrWhiteSpace(userInput))"
-                    data-testid="chat-send">
-                @(isStreaming ? "Streaming..." : "Send")
-            </button>
-            <button class="btn btn-outline-secondary" @onclick="SendMessageStreaming"
-                    disabled="@(isStreaming || string.IsNullOrWhiteSpace(userInput))"
-                    data-testid="chat-send-stream">
-                Stream
-            </button>
-        </div>
-
-        @if (!string.IsNullOrEmpty(toolStatus))
-        {
-            <div class="alert alert-info mt-2" data-testid="chat-tool-status">
-                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                @toolStatus
+    <div class="d-flex gap-3" data-testid="chat-layout">
+        <div class="session-sidebar border rounded p-2" style="width: 250px; max-height: 500px; overflow-y: auto;" data-testid="session-sidebar">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Sessions</strong>
+                <button class="btn btn-sm btn-outline-primary" @onclick="CreateNewSession" data-testid="new-session-btn">+ New</button>
             </div>
-        }
+            @foreach (var session in sessions)
+            {
+                <div class="p-2 mb-1 rounded cursor-pointer @(session.Id == currentSessionId ? "bg-primary text-white" : "bg-light")"
+                     style="cursor: pointer;"
+                     @onclick="() => SelectSession(session.Id)"
+                     data-testid="session-item">
+                    <small>@(session.Title ?? "New session")</small>
+                    <br />
+                    <small class="@(session.Id == currentSessionId ? "text-white-50" : "text-muted")">@session.UpdatedAt.ToString("g")</small>
+                </div>
+            }
+        </div>
 
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="alert alert-danger mt-2" data-testid="chat-error">@errorMessage</div>
-        }
+        <div class="flex-grow-1">
+            <div class="chat-container" data-testid="chat-container">
+                @if (currentSessionId is not null)
+                {
+                    <div class="mb-2 text-muted" data-testid="session-header">
+                        <small>Session: @(sessions.FirstOrDefault(s => s.Id == currentSessionId)?.Title ?? "New session")</small>
+                    </div>
+                }
+                <div class="chat-messages border rounded p-3 mb-3" style="height: 400px; overflow-y: auto;" data-testid="chat-messages">
+                    @foreach (var msg in messages)
+                    {
+                        <div class="mb-2 @(msg.Role == "user" ? "text-end" : "")">
+                            <span class="badge @(msg.Role == "user" ? "bg-primary" : "bg-secondary")">@msg.Role</span>
+                            <span class="ms-2" data-testid="chat-message-content">@msg.Content</span>
+                        </div>
+                    }
+                    @if (isStreaming && !string.IsNullOrEmpty(streamingContent))
+                    {
+                        <div class="mb-2">
+                            <span class="badge bg-secondary">assistant</span>
+                            <span class="ms-2" data-testid="chat-streaming-content">@streamingContent</span>
+                            <span class="spinner-border spinner-border-sm ms-1" role="status"></span>
+                        </div>
+                    }
+                </div>
+
+                <div class="input-group" data-testid="chat-input-group">
+                    <input type="text" class="form-control" placeholder="Type a message..."
+                           @bind="userInput" @bind:event="oninput"
+                           @onkeydown="HandleKeyDown"
+                           disabled="@isStreaming"
+                           data-testid="chat-input" />
+                    <button class="btn btn-primary" @onclick="SendMessage"
+                            disabled="@(isStreaming || string.IsNullOrWhiteSpace(userInput))"
+                            data-testid="chat-send">
+                        @(isStreaming ? "Streaming..." : "Send")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="SendMessageStreaming"
+                            disabled="@(isStreaming || string.IsNullOrWhiteSpace(userInput))"
+                            data-testid="chat-send-stream">
+                        Stream
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(toolStatus))
+                {
+                    <div class="alert alert-info mt-2" data-testid="chat-tool-status">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        @toolStatus
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-2" data-testid="chat-error">@errorMessage</div>
+                }
+            </div>
+        </div>
     </div>
 }
 
 @code {
     private List<ChatMessageDto> messages = [];
+    private List<SessionSummary> sessions = [];
+    private string? currentSessionId;
     private string userInput = string.Empty;
     private string? errorMessage;
     private bool isStreaming;
@@ -86,7 +116,56 @@ else
         if (firstRender)
         {
             await AuthState.InitializeAsync();
+            if (AuthState.IsAuthenticated)
+                await LoadSessionsAsync();
             StateHasChanged();
+        }
+    }
+
+    private async Task LoadSessionsAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<SessionSummary>>("/api/sessions");
+            if (result is not null)
+                sessions = result;
+        }
+        catch { /* session loading is best-effort */ }
+    }
+
+    private async Task CreateNewSession()
+    {
+        try
+        {
+            var response = await Http.PostAsync("/api/sessions", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+                currentSessionId = result.GetProperty("sessionId").GetString();
+                messages.Clear();
+                await LoadSessionsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating session: {ex.Message}";
+        }
+    }
+
+    private async Task SelectSession(string sessionId)
+    {
+        currentSessionId = sessionId;
+        messages.Clear();
+
+        try
+        {
+            var history = await Http.GetFromJsonAsync<List<ChatMessageDto>>($"/api/sessions/{sessionId}/history");
+            if (history is not null)
+                messages = history;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading history: {ex.Message}";
         }
     }
 
@@ -164,6 +243,7 @@ else
             var request = new ChatRequest
             {
                 Messages = messages.ToList(),
+                SessionId = currentSessionId,
             };
 
             var jsonContent = JsonContent.Create(request);
@@ -189,6 +269,8 @@ else
             {
                 messages.Add(new ChatMessageDto { Role = "assistant", Content = streamingContent.Trim() });
             }
+
+            await LoadSessionsAsync();
         }
         catch (Exception ex)
         {
@@ -224,6 +306,12 @@ else
                 }
                 else if (eventType == "done")
                 {
+                    // Extract sessionId from done event
+                    var json = JsonSerializer.Deserialize<JsonElement>(data);
+                    if (json.TryGetProperty("sessionId", out var sidElement))
+                    {
+                        currentSessionId ??= sidElement.GetString();
+                    }
                     break;
                 }
 
