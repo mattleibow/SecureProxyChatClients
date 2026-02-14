@@ -1,0 +1,501 @@
+@page "/play"
+@using SecureProxyChatClients.Client.Web.Components
+@using SecureProxyChatClients.Client.Web.Services
+@using SecureProxyChatClients.Shared.Contracts
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject HttpClient Http
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<PageTitle>⚔️ Play — LoreEngine</PageTitle>
+
+@if (!AuthState.IsAuthenticated)
+{
+    <div class="alert alert-warning" data-testid="play-unauthenticated">
+        You must <a href="/login">login</a> to begin your adventure.
+    </div>
+}
+else if (playerState is null && !isLoading)
+{
+    <!-- Character Creation -->
+    <div class="text-center mb-4" data-testid="character-creation">
+        <pre class="ascii-art" style="display: inline-block; text-align: left;">
+  ╔══════════════════════════════════════╗
+  ║     ⚔️  THE LOREENGINE  ⚔️          ║
+  ║                                      ║
+  ║   "Every legend begins with a        ║
+  ║    single step into the unknown..."  ║
+  ║                                      ║
+  ╚══════════════════════════════════════╝
+        </pre>
+        <h2 style="font-family: var(--font-display); color: var(--lore-gold);">Create Your Character</h2>
+        <hr class="lore-separator" />
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <label class="form-label">Character Name</label>
+                <input type="text" class="form-control" @bind="characterName" @bind:event="oninput"
+                       placeholder="Enter your hero's name..." maxlength="30"
+                       data-testid="character-name" />
+            </div>
+
+            <label class="form-label">Choose Your Class</label>
+            <div class="row g-3 mb-4">
+                @foreach (var cls in characterClasses)
+                {
+                    <div class="col-6 col-md-3">
+                        <div class="card h-100 @(selectedClass == cls.Key ? "border-primary glow-active" : "")"
+                             style="cursor: pointer;"
+                             @onclick="() => selectedClass = cls.Key"
+                             data-testid="class-@cls.Key">
+                            <div class="card-body text-center">
+                                <div style="font-size: 2.5em;">@cls.Value.Emoji</div>
+                                <h5 style="font-family: var(--font-display); color: var(--lore-gold-bright);">@cls.Value.Name</h5>
+                                <small class="text-muted">@cls.Value.Description</small>
+                                <div class="mt-2" style="font-size: 0.75rem;">
+                                    <span class="text-muted">@cls.Value.Stats</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="text-center">
+                <button class="btn btn-primary btn-lg" @onclick="StartNewGame"
+                        disabled="@(string.IsNullOrWhiteSpace(characterName) || selectedClass is null)"
+                        data-testid="start-game">
+                    ⚔️ Begin Your Adventure
+                </button>
+            </div>
+        </div>
+    </div>
+}
+else if (playerState is not null)
+{
+    <!-- Game UI -->
+    <div class="d-flex gap-3" data-testid="play-container">
+        <!-- Main game area -->
+        <div class="flex-grow-1">
+            <!-- Player stats bar -->
+            <div class="player-stats mb-3" data-testid="player-stats">
+                <div>
+                    <span class="stat-label">Player</span>
+                    <span class="stat-value">@playerState.Name the @playerState.CharacterClass</span>
+                </div>
+                <div>
+                    <span class="stat-label">Lvl</span>
+                    <span class="stat-value stat-xp">@playerState.Level</span>
+                </div>
+                <div>
+                    <span class="stat-label">HP</span>
+                    <span class="stat-value stat-hp">@playerState.Health/@playerState.MaxHealth</span>
+                    <div class="health-bar ms-1">
+                        <div class="health-bar-fill" style="width: @(playerState.MaxHealth > 0 ? (int)(100.0 * playerState.Health / playerState.MaxHealth) : 0)%"></div>
+                    </div>
+                </div>
+                <div>
+                    <span class="stat-label">Gold</span>
+                    <span class="stat-value stat-gold">@playerState.Gold</span>
+                </div>
+                <div>
+                    <span class="stat-label">XP</span>
+                    <span class="stat-value stat-xp">@playerState.Experience</span>
+                </div>
+                <div class="ms-auto">
+                    <span class="stat-label">📍</span>
+                    <span class="stat-value">@playerState.CurrentLocation</span>
+                </div>
+            </div>
+
+            <!-- Game events (dice rolls, items, etc.) -->
+            @if (gameEvents.Count > 0)
+            {
+                <div class="mb-2" data-testid="game-events">
+                    @foreach (var evt in gameEvents.TakeLast(5))
+                    {
+                        <div class="play-dice @GetEventClass(evt) mb-1">
+                            @GetEventDisplay(evt)
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Story area -->
+            <div class="story-area" style="max-height: 55vh; overflow-y: auto; padding-right: 0.5rem;" data-testid="story-area">
+                @foreach (var msg in storyMessages)
+                {
+                    <GameMessage Content="@msg.Content" Role="@msg.Role" />
+                }
+
+                @if (isStreaming && !string.IsNullOrEmpty(streamingContent))
+                {
+                    <div class="play-scene">
+                        <span>@streamingContent</span>
+                        <span class="typing-cursor"></span>
+                    </div>
+                }
+            </div>
+
+            <hr class="lore-separator" />
+
+            <!-- Action input -->
+            <div class="d-flex gap-2" data-testid="action-input">
+                <input type="text" class="form-control" placeholder="What do you do?"
+                       @bind="actionInput" @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       disabled="@isStreaming"
+                       data-testid="action-text" />
+                <button class="btn btn-primary" @onclick="SendAction"
+                        disabled="@(isStreaming || string.IsNullOrWhiteSpace(actionInput))"
+                        data-testid="send-action">
+                    ⚔️ Act
+                </button>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="d-flex gap-2 mt-2 flex-wrap">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Look around and describe what I see"))"
+                        disabled="@isStreaming">👁️ Look</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Check my inventory and equipment"))"
+                        disabled="@isStreaming">🎒 Inventory</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Talk to whoever is nearby"))"
+                        disabled="@isStreaming">💬 Talk</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Search the area carefully for anything useful"))"
+                        disabled="@isStreaming">🔍 Search</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => QuickAction("Rest and recover some health"))"
+                        disabled="@isStreaming">💤 Rest</button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-2" data-testid="play-error">@errorMessage</div>
+            }
+        </div>
+
+        <!-- Inventory sidebar -->
+        <div class="inventory-sidebar" style="width: 220px; min-width: 220px;" data-testid="inventory-sidebar">
+            <div class="card">
+                <div class="card-header">🎒 Inventory</div>
+                <div class="card-body py-2">
+                    @if (playerState.Inventory.Count == 0)
+                    {
+                        <small class="text-muted">Empty</small>
+                    }
+                    else
+                    {
+                        @foreach (var item in playerState.Inventory)
+                        {
+                            <div class="inventory-item" title="@item.Description">
+                                @item.Emoji @item.Name
+                                @if (item.Quantity > 1) { <small class="text-muted">x@item.Quantity</small> }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="card mt-2">
+                <div class="card-header">📊 Stats</div>
+                <div class="card-body py-2" style="font-family: var(--font-mono); font-size: 0.8rem;">
+                    @foreach (var stat in playerState.Stats)
+                    {
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted text-uppercase">@stat.Key[..3]</span>
+                            <span>@stat.Value</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <button class="btn btn-outline-secondary btn-sm w-100 mt-2" @onclick="StartOver" data-testid="new-game-btn">
+                🔄 New Game
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center mt-4">
+        <span class="spinner-border" role="status"></span>
+        <p class="mt-2 text-muted">Loading your adventure...</p>
+    </div>
+}
+
+@code {
+    private PlayerStateDto? playerState;
+    private List<ChatMessageDto> storyMessages = [];
+    private List<GameEvent> gameEvents = [];
+    private string actionInput = string.Empty;
+    private string? errorMessage;
+    private bool isStreaming;
+    private bool isLoading;
+    private string streamingContent = string.Empty;
+    private string? sessionId;
+
+    // Character creation
+    private string characterName = string.Empty;
+    private string? selectedClass;
+
+    private static readonly Dictionary<string, ClassInfo> characterClasses = new()
+    {
+        ["warrior"] = new("Warrior", "⚔️", "Strength and steel", "STR 14 | DEX 10"),
+        ["rogue"] = new("Rogue", "🗡️", "Stealth and cunning", "DEX 14 | CHA 12"),
+        ["mage"] = new("Mage", "🔮", "Arcane power", "WIS 14 | CHA 12"),
+        ["explorer"] = new("Explorer", "🧭", "Resourceful and adaptable", "Balanced stats"),
+    };
+
+    private sealed record ClassInfo(string Name, string Emoji, string Description, string Stats);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.InitializeAsync();
+            if (AuthState.IsAuthenticated)
+            {
+                isLoading = true;
+                StateHasChanged();
+                await LoadPlayerState();
+                isLoading = false;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPlayerState()
+    {
+        try
+        {
+            var state = await Http.GetFromJsonAsync<PlayerStateDto>("/api/play/state");
+            if (state is not null && state.Name != "Adventurer")
+            {
+                playerState = state;
+                // Load a welcome back message
+                storyMessages.Add(new ChatMessageDto
+                {
+                    Role = "assistant",
+                    Content = $"Welcome back, {state.Name} the {state.CharacterClass}. You find yourself at {state.CurrentLocation}.\n\nWhat do you do?",
+                });
+            }
+        }
+        catch { /* No existing game, show character creation */ }
+    }
+
+    private async Task StartNewGame()
+    {
+        if (string.IsNullOrWhiteSpace(characterName) || selectedClass is null) return;
+
+        isLoading = true;
+        errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/play/new-game", new
+            {
+                characterName,
+                characterClass = selectedClass,
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                playerState = await response.Content.ReadFromJsonAsync<PlayerStateDto>();
+                storyMessages.Clear();
+                gameEvents.Clear();
+
+                // Send the opening prompt
+                await SendActionInternal("I arrive at the crossroads. Describe the scene and what I see.");
+            }
+            else
+            {
+                errorMessage = "Failed to start game.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isStreaming && !string.IsNullOrWhiteSpace(actionInput))
+            await SendAction();
+    }
+
+    private async Task SendAction()
+    {
+        if (string.IsNullOrWhiteSpace(actionInput)) return;
+        await SendActionInternal(actionInput);
+        actionInput = string.Empty;
+    }
+
+    private async Task QuickAction(string action)
+    {
+        await SendActionInternal(action);
+    }
+
+    private async Task SendActionInternal(string action)
+    {
+        storyMessages.Add(new ChatMessageDto { Role = "user", Content = action });
+        errorMessage = null;
+        isStreaming = true;
+        streamingContent = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var request = new ChatRequest
+            {
+                Messages = storyMessages.TakeLast(20).ToList(),
+                SessionId = sessionId,
+            };
+
+            var jsonContent = JsonContent.Create(request);
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/play/stream")
+            {
+                Content = jsonContent,
+            };
+
+            using var response = await Http.SendAsync(httpRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Error {(int)response.StatusCode}";
+                return;
+            }
+
+            var sseText = await response.Content.ReadAsStringAsync();
+            ParsePlaySseResponse(sseText);
+
+            if (!string.IsNullOrEmpty(streamingContent))
+            {
+                storyMessages.Add(new ChatMessageDto { Role = "assistant", Content = streamingContent.Trim() });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isStreaming = false;
+            streamingContent = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private void ParsePlaySseResponse(string sseText)
+    {
+        string? eventType = null;
+        foreach (var line in sseText.Split('\n'))
+        {
+            if (line.StartsWith("event: "))
+            {
+                eventType = line[7..].Trim();
+            }
+            else if (line.StartsWith("data: ") && eventType is not null)
+            {
+                var data = line[6..].Trim();
+
+                switch (eventType)
+                {
+                    case "text-delta":
+                        var json = JsonSerializer.Deserialize<JsonElement>(data);
+                        if (json.TryGetProperty("text", out var textElement))
+                            streamingContent += textElement.GetString();
+                        break;
+
+                    case "state":
+                        var state = JsonSerializer.Deserialize<PlayerStateDto>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if (state is not null)
+                            playerState = state;
+                        break;
+
+                    case "done":
+                        var doneJson = JsonSerializer.Deserialize<JsonElement>(data);
+                        if (doneJson.TryGetProperty("sessionId", out var sidEl))
+                            sessionId ??= sidEl.GetString();
+                        break;
+                }
+
+                eventType = null;
+            }
+        }
+    }
+
+    private void StartOver()
+    {
+        playerState = null;
+        storyMessages.Clear();
+        gameEvents.Clear();
+        sessionId = null;
+        characterName = string.Empty;
+        selectedClass = null;
+    }
+
+    private static string GetEventClass(GameEvent evt)
+    {
+        if (evt.Data is null) return "";
+        try
+        {
+            if (evt.Type.Contains("RollCheck", StringComparison.OrdinalIgnoreCase) &&
+                evt.Data.Value.TryGetProperty("Success", out var s))
+                return s.GetBoolean() ? "success" : "failure";
+        }
+        catch { }
+        return "";
+    }
+
+    private static string GetEventDisplay(GameEvent evt)
+    {
+        if (evt.Data is null) return evt.Type;
+        try
+        {
+            return evt.Type switch
+            {
+                "RollCheck" => FormatDiceRoll(evt.Data.Value),
+                "GiveItem" => $"📦 Found: {evt.Data.Value.GetProperty("Name").GetString()}",
+                "TakeItem" => $"📦 Lost: {evt.Data.Value.GetProperty("Name").GetString()}",
+                "ModifyHealth" => FormatHealthChange(evt.Data.Value),
+                "ModifyGold" => FormatGoldChange(evt.Data.Value),
+                "MovePlayer" => $"📍 Moved to: {evt.Data.Value.GetProperty("Location").GetString()}",
+                _ => evt.Type,
+            };
+        }
+        catch { return evt.Type; }
+    }
+
+    private static string FormatDiceRoll(JsonElement data)
+    {
+        int roll = data.GetProperty("Roll").GetInt32();
+        int total = data.GetProperty("Total").GetInt32();
+        int dc = data.GetProperty("Difficulty").GetInt32();
+        bool success = data.GetProperty("Success").GetBoolean();
+        bool crit = data.TryGetProperty("CriticalSuccess", out var cs) && cs.GetBoolean();
+        bool critFail = data.TryGetProperty("CriticalFailure", out var cf) && cf.GetBoolean();
+
+        string result = crit ? "CRITICAL SUCCESS!" : critFail ? "CRITICAL FAILURE!" : success ? "Success" : "Failure";
+        return $"🎲 d20={roll} +{data.GetProperty("Modifier").GetInt32()} = {total} vs DC {dc} → {result}";
+    }
+
+    private static string FormatHealthChange(JsonElement data)
+    {
+        int amount = data.GetProperty("Amount").GetInt32();
+        return amount >= 0 ? $"💚 +{amount} HP ({data.GetProperty("Source").GetString()})" : $"💔 {amount} HP ({data.GetProperty("Source").GetString()})";
+    }
+
+    private static string FormatGoldChange(JsonElement data)
+    {
+        int amount = data.GetProperty("Amount").GetInt32();
+        return amount >= 0 ? $"💰 +{amount} gold" : $"💰 {amount} gold";
+    }
+}

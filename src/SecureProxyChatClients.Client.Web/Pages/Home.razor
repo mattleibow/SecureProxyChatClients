@@ -3,42 +3,79 @@
 @inject StoryStateService StoryState
 @inject AuthState AuthState
 
-<PageTitle>LoreEngine — Home</PageTitle>
+<PageTitle>LoreEngine — Interactive Fiction</PageTitle>
 
 <div data-testid="home-container">
-    <h1>🎭 LoreEngine</h1>
-    <p class="lead">Your AI writing team. Your story. Your rules.</p>
+    <div class="text-center mb-4">
+        <pre class="ascii-art" style="display: inline-block; text-align: left; font-size: 0.6rem;">
+    ╦   ╔═╗╦═╗╔═╗╔═╗╔╗╔╔═╗╦╔╗╔╔═╗
+    ║   ║ ║╠╦╝║╣ ║╣ ║║║║ ╦║║║║║╣ 
+    ╩═╝ ╚═╝╩╚═╚═╝╚═╝╝╚╝╚═╝╩╝╚╝╚═╝
+        ⚔️  Interactive Fiction Engine  ⚔️
+        </pre>
+        <h1>Your AI Writing Team. Your Story. Your Rules.</h1>
+        <p class="lead" style="max-width: 600px; margin: 0 auto;">
+            Explore dangerous worlds, outwit cunning NPCs, and forge your own legend — 
+            all powered by AI agents through a secure proxy.
+        </p>
+    </div>
 
-    <p>
-        LoreEngine is an interactive fiction builder powered by a team of AI agents — your personal Writer's Room.
-        Pitch your story ideas, watch your agents debate and refine them, then build your narrative scene by scene.
-    </p>
+    <hr class="lore-separator" />
 
-    <div class="row g-3 mt-3">
-        <div class="col-md-4">
-            <div class="card h-100">
+    <div class="row g-4 mt-2">
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 3px solid var(--lore-gold);">
                 <div class="card-body">
-                    <h5 class="card-title">🎬 Create Story</h5>
-                    <p class="card-text">Start a new story from scratch. Choose a genre, set world rules, and let your AI writers bring it to life.</p>
-                    <a href="/create-story" class="btn btn-primary" data-testid="link-create-story">Get Started</a>
+                    <div style="font-size: 2em;">⚔️</div>
+                    <h4 style="font-family: var(--font-display); color: var(--lore-gold);">Play Adventure</h4>
+                    <p>Become the hero. Create your character, explore the world, battle monsters, and discover secrets. 
+                       The AI Dungeon Master responds to your every move.</p>
+                    <ul style="color: var(--lore-text-dim); font-size: 0.9rem;">
+                        <li>Server-enforced dice rolls & game state</li>
+                        <li>Inventory, health, and XP tracking</li>
+                        <li>NPCs with hidden secrets</li>
+                        <li>ASCII art scene descriptions</li>
+                    </ul>
+                    <a href="/play" class="btn btn-primary" data-testid="link-play">⚔️ Begin Adventure</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 3px solid var(--lore-purple);">
                 <div class="card-body">
-                    <h5 class="card-title">📝 Writer's Room</h5>
-                    <p class="card-text">Jump straight into a group discussion with the Storyteller, Critic, and Archivist agents.</p>
-                    <a href="/writers-room" class="btn btn-outline-primary" data-testid="link-writers-room">Open Room</a>
+                    <div style="font-size: 2em;">🎭</div>
+                    <h4 style="font-family: var(--font-display); color: var(--lore-purple);">Create Story</h4>
+                    <p>Build a story from scratch with your AI writing team. Choose a genre, set world rules, 
+                       and watch the Writer's Room debate your ideas.</p>
+                    <ul style="color: var(--lore-text-dim); font-size: 0.9rem;">
+                        <li>4-step guided story creation</li>
+                        <li>3 AI agents: Storyteller, Critic, Archivist</li>
+                        <li>Genre & world rule customization</li>
+                        <li>Scene-by-scene building</li>
+                    </ul>
+                    <a href="/create-story" class="btn btn-outline-primary" data-testid="link-create-story">🎭 Create Story</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 3px solid var(--agent-critic);">
                 <div class="card-body">
-                    <h5 class="card-title">💬 Chat</h5>
-                    <p class="card-text">Direct chat with the AI through the secure proxy. Supports streaming and tool calling.</p>
-                    <a href="/chat" class="btn btn-outline-primary" data-testid="link-chat">Open Chat</a>
+                    <div style="font-size: 2em;">📝</div>
+                    <h4 style="font-family: var(--font-display); color: var(--agent-critic);">Writer's Room</h4>
+                    <p>Pitch ideas directly to your AI writing team and watch them brainstorm, 
+                       critique, and refine your concepts in real-time.</p>
+                    <a href="/writers-room" class="btn btn-outline-primary" data-testid="link-writers-room">📝 Open Room</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 3px solid var(--lore-cyan);">
+                <div class="card-body">
+                    <div style="font-size: 2em;">💬</div>
+                    <h4 style="font-family: var(--font-display); color: var(--lore-cyan);">Secure Chat</h4>
+                    <p>Direct chat with AI through the secure proxy. Full tool calling, 
+                       streaming, and session persistence.</p>
+                    <a href="/chat" class="btn btn-outline-primary" data-testid="link-chat">💬 Open Chat</a>
                 </div>
             </div>
         </div>
@@ -47,7 +84,7 @@
     @if (StoryState.Scenes.Count > 0 || StoryState.Characters.Count > 0)
     {
         <div class="card mt-4" data-testid="home-stats">
-            <div class="card-header"><strong>📊 Quick Stats</strong></div>
+            <div class="card-header">📊 Quick Stats</div>
             <div class="card-body">
                 <div class="d-flex gap-4">
                     <div><strong>@StoryState.Scenes.Count</strong> Scene(s)</div>
@@ -58,6 +95,12 @@
             </div>
         </div>
     }
+
+    <hr class="lore-separator" />
+
+    <div class="text-center mt-3" style="color: var(--lore-text-dim); font-size: 0.85rem;">
+        <p>🔒 Secure Augmenting Proxy Reference Sample — .NET 10 · Aspire · MEAI · Blazor WASM</p>
+    </div>
 </div>
 
 @code {

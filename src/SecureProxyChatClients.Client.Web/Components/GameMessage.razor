@@ -1,0 +1,92 @@
+@namespace SecureProxyChatClients.Client.Web.Components
+
+<div class="play-message @GetMessageClass()">
+    @if (IsAsciiBlock)
+    {
+        <pre class="ascii-art" data-testid="ascii-art">@AsciiContent</pre>
+    }
+    else if (IsDiceResult)
+    {
+        <div class="play-dice @DiceClass" data-testid="dice-result">
+            🎲 @Content
+        </div>
+    }
+    else if (IsPlayerAction)
+    {
+        <div class="play-action" data-testid="player-action">
+            @Content
+        </div>
+    }
+    else
+    {
+        @foreach (var segment in ParseSegments())
+        {
+            @if (segment.IsAscii)
+            {
+                <pre class="ascii-art">@segment.Text</pre>
+            }
+            else
+            {
+                <span>@segment.Text</span>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Content { get; set; } = string.Empty;
+    [Parameter] public string Role { get; set; } = "assistant";
+    [Parameter] public bool IsAsciiBlock { get; set; }
+    [Parameter] public string? AsciiContent { get; set; }
+    [Parameter] public bool IsDiceResult { get; set; }
+    [Parameter] public bool IsPlayerAction { get; set; }
+    [Parameter] public string? DiceClass { get; set; }
+
+    private string GetMessageClass() => Role switch
+    {
+        "user" => "play-action",
+        _ => "play-scene",
+    };
+
+    private List<TextSegment> ParseSegments()
+    {
+        var segments = new List<TextSegment>();
+        if (string.IsNullOrEmpty(Content))
+            return segments;
+
+        int pos = 0;
+        while (pos < Content.Length)
+        {
+            int asciiStart = Content.IndexOf("```ascii", pos, StringComparison.Ordinal);
+            if (asciiStart < 0)
+            {
+                segments.Add(new TextSegment(Content[pos..], false));
+                break;
+            }
+
+            if (asciiStart > pos)
+                segments.Add(new TextSegment(Content[pos..asciiStart], false));
+
+            int contentStart = asciiStart + 8;
+            // Skip newline after ```ascii
+            if (contentStart < Content.Length && Content[contentStart] == '\n')
+                contentStart++;
+
+            int asciiEnd = Content.IndexOf("```", contentStart, StringComparison.Ordinal);
+            if (asciiEnd < 0)
+            {
+                segments.Add(new TextSegment(Content[contentStart..], true));
+                break;
+            }
+
+            segments.Add(new TextSegment(Content[contentStart..asciiEnd], true));
+            pos = asciiEnd + 3;
+            if (pos < Content.Length && Content[pos] == '\n')
+                pos++;
+        }
+
+        return segments;
+    }
+
+    private sealed record TextSegment(string Text, bool IsAscii);
+}

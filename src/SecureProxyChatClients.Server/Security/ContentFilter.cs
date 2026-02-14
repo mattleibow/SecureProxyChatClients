@@ -1,13 +1,41 @@
+using System.Text.RegularExpressions;
 using SecureProxyChatClients.Shared.Contracts;
 
 namespace SecureProxyChatClients.Server.Security;
 
-public sealed class ContentFilter(ILogger<ContentFilter> logger)
+public sealed partial class ContentFilter(ILogger<ContentFilter> logger)
 {
-    // S6: Basic content filtering on output — placeholder for now, log and pass through
-    public Shared.Contracts.ChatResponse FilterResponse(Shared.Contracts.ChatResponse response)
+    // Sanitize HTML/script injection from LLM output
+    [GeneratedRegex(@"<script[^>]*>.*?</script>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex ScriptTagRegex();
+
+    [GeneratedRegex(@"<iframe[^>]*>.*?</iframe>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex IframeTagRegex();
+
+    [GeneratedRegex(@"on\w+\s*=\s*""[^""]*""", RegexOptions.IgnoreCase)]
+    private static partial Regex EventHandlerRegex();
+
+    [GeneratedRegex(@"javascript\s*:", RegexOptions.IgnoreCase)]
+    private static partial Regex JavascriptProtocolRegex();
+
+    public ChatResponse FilterResponse(ChatResponse response)
     {
-        logger.LogDebug("Content filter applied to response with {MessageCount} messages", response.Messages.Count);
-        return response;
+        var filtered = response.Messages.Select(m =>
+        {
+            if (m.Content is null) return m;
+
+            string sanitized = m.Content;
+            sanitized = ScriptTagRegex().Replace(sanitized, "[content removed]");
+            sanitized = IframeTagRegex().Replace(sanitized, "[content removed]");
+            sanitized = EventHandlerRegex().Replace(sanitized, "");
+            sanitized = JavascriptProtocolRegex().Replace(sanitized, "");
+
+            if (sanitized != m.Content)
+                logger.LogWarning("Content filter removed potentially unsafe content from response");
+
+            return m with { Content = sanitized };
+        }).ToList();
+
+        return response with { Messages = filtered };
     }
 }

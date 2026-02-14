@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SecureProxyChatClients.Server.AI;
 using SecureProxyChatClients.Server.Data;
 using SecureProxyChatClients.Server.Endpoints;
+using SecureProxyChatClients.Server.GameEngine;
 using SecureProxyChatClients.Server.Security;
 using SecureProxyChatClients.Server.Services;
 
@@ -49,6 +50,9 @@ builder.Services.AddSingleton<SystemPromptService>();
 // Conversation persistence
 builder.Services.AddScoped<IConversationStore, EfConversationStore>();
 
+// Game engine
+builder.Services.AddSingleton<IGameStateStore, InMemoryGameStateStore>();
+
 // Rate limiting
 int permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 30);
 int windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
@@ -91,6 +95,7 @@ app.UseRateLimiter();
 app.MapIdentityApi<IdentityUser>();
 app.MapChatEndpoints();
 app.MapSessionEndpoints();
+app.MapPlayEndpoints();
 
 app.MapGet("/api/ping", (HttpContext context) =>
 {
