@@ -50,6 +50,7 @@ public sealed class GameToolRegistry
                     Description = item.Description,
                     Type = item.Type,
                     Emoji = item.Emoji,
+                    Rarity = item.Rarity,
                 });
                 return result;
 
@@ -75,6 +76,18 @@ public sealed class GameToolRegistry
                     state.Level++;
                     state.MaxHealth += 10;
                     state.Health = state.MaxHealth;
+                }
+                return result;
+
+            case DiceCheckResult dice:
+                if (dice.Success)
+                {
+                    state.SuccessStreak++;
+                    state.MaxStreak = Math.Max(state.MaxStreak, state.SuccessStreak);
+                }
+                else
+                {
+                    state.SuccessStreak = 0;
                 }
                 return result;
 

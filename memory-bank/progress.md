@@ -4,7 +4,7 @@
 
 ## ✅ ALL 11 PHASES COMPLETE + FEATURE EXPANSION + VISUAL POLISH
 
-**Total test count: 230 unit + 4 integration + 25 Playwright = 259 tests**
+**Total test count: 253 unit + 7 integration + 25 Playwright = 285 tests**
 
 ### Planning & Design ✅
 - [x] Read and analyzed proposal (`docs/proposal.md`)
@@ -155,3 +155,17 @@ See prior progress entries. All foundation, auth, chat, streaming, security, too
 - Game state concurrency control (optimistic locking with version)
 - Session ownership checks (IDOR prevention)
 - Client-side 401 auto-logout
+
+### Latest Improvements (2026-02-18)
+- [x] Updated README security table with all 17 controls
+- [x] Added 401/429 user-friendly error handling in Play.razor
+- [x] Login redirects on 401 with auth state clear
+- [x] Created Register.razor page with auto-login flow
+- [x] Improved Login.razor with themed styling and register link
+- [x] Added auth container CSS styles
+- [x] Fixed AI provider config: secrets.json no longer overrides env vars
+- [x] AppHost passes AI:Provider config to server via WithEnvironment
+- [x] Added 3 auth integration tests (register+login, duplicate email, wrong password)
+- [x] Integration tests reliably use Fake provider via command-line args
+- [x] **Total: 253 unit tests + 7 integration tests = 260 tests, all passing**
+- [x] Pushed to GitHub: `mattleibow/SecureProxyChatClients`

@@ -30,6 +30,8 @@ public sealed record PlayerStateDto
     public Dictionary<string, int> Stats { get; init; } = [];
     public HashSet<string> UnlockedAchievements { get; init; } = [];
     public HashSet<string> VisitedLocations { get; init; } = [];
+    public int SuccessStreak { get; init; }
+    public int MaxStreak { get; init; }
 }
 
 public sealed record InventoryItemDto
@@ -38,5 +40,6 @@ public sealed record InventoryItemDto
     public string Description { get; init; } = string.Empty;
     public string Emoji { get; init; } = "📦";
     public string Type { get; init; } = "misc";
+    public string Rarity { get; init; } = "common";
     public int Quantity { get; init; } = 1;
 }

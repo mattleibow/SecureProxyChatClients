@@ -977,3 +977,26 @@ main {
     margin-bottom: 1.5rem;
     font-style: italic;
 }
+
+/* Health critical warning */
+.health-critical {
+    animation: pulse-red 0.8s infinite;
+}
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 4px #dc3545; }
+    50% { box-shadow: 0 0 12px #ff6b6b; }
+}
+
+/* Streak display */
+.stat-streak {
+    color: #ff8c00;
+    font-weight: bold;
+    text-shadow: 0 0 6px rgba(255, 140, 0, 0.5);
+}
+
+/* Item rarity colors */
+.rarity-common { color: #b0b0b0; }
+.rarity-uncommon { color: #1eff00; font-weight: 500; }
+.rarity-rare { color: #4169ff; font-weight: bold; }
+.rarity-epic { color: #a335ee; font-weight: bold; }
+.rarity-legendary { color: #ff8c00; font-weight: bold; text-shadow: 0 0 4px rgba(255, 140, 0, 0.4); }

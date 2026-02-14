@@ -21,6 +21,8 @@ public sealed class PlayerState
     };
     public HashSet<string> VisitedLocations { get; set; } = ["The Crossroads"];
     public HashSet<string> UnlockedAchievements { get; set; } = [];
+    public int SuccessStreak { get; set; }
+    public int MaxStreak { get; set; }
     public int Version { get; set; }
 }
 
@@ -31,5 +33,6 @@ public sealed class InventoryItem
     public string Description { get; set; } = string.Empty;
     public string Emoji { get; set; } = "📦";
     public string Type { get; set; } = "misc"; // weapon, armor, potion, key, misc
+    public string Rarity { get; set; } = "common"; // common, uncommon, rare, epic, legendary
     public int Quantity { get; set; } = 1;
 }

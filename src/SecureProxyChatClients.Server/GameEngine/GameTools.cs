@@ -51,16 +51,17 @@ public static class GameTools
         [Description("Name of the item")] string name,
         [Description("Brief description")] string description,
         [Description("Type: weapon, armor, potion, key, or misc")] string type,
-        [Description("Emoji icon for the item")] string emoji)
+        [Description("Emoji icon for the item")] string emoji,
+        [Description("Rarity: common, uncommon, rare, epic, or legendary")] string rarity = "common")
     {
-        return new ItemResult(name, description, type, emoji, Added: true);
+        return new ItemResult(name, description, type, emoji, rarity, Added: true);
     }
 
     [Description("Remove an item from the player's inventory.")]
     public static ItemResult TakeItem(
         [Description("Name of the item to remove")] string name)
     {
-        return new ItemResult(name, "", "", "", Added: false);
+        return new ItemResult(name, "", "", "", "common", Added: false);
     }
 
     [Description("Deal damage to the player or heal them.")]
@@ -113,7 +114,7 @@ public sealed record DiceCheckResult(
     string Action, string Stat);
 
 public sealed record LocationResult(string Location, string Description);
-public sealed record ItemResult(string Name, string Description, string Type, string Emoji, bool Added);
+public sealed record ItemResult(string Name, string Description, string Type, string Emoji, string Rarity, bool Added);
 public sealed record HealthResult(int Amount, string Source);
 public sealed record GoldResult(int Amount, string Reason);
 public sealed record ExperienceResult(int Amount, string Reason);

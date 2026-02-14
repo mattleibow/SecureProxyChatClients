@@ -49,7 +49,7 @@ public class GameToolRegistryTests
     public void ApplyToolResult_GiveItem_AddsToInventory()
     {
         var state = new PlayerState();
-        var result = new ItemResult("Torch", "Lights the way", "misc", "🔦", Added: true);
+        var result = new ItemResult("Torch", "Lights the way", "misc", "🔦", "common", Added: true);
 
         GameToolRegistry.ApplyToolResult(result, state);
 
@@ -62,7 +62,7 @@ public class GameToolRegistryTests
     {
         var state = new PlayerState();
         state.Inventory.Add(new InventoryItem { Name = "Key" });
-        var result = new ItemResult("Key", "", "", "", Added: false);
+        var result = new ItemResult("Key", "", "", "", "common", Added: false);
 
         GameToolRegistry.ApplyToolResult(result, state);
 
@@ -186,5 +186,43 @@ public class GameToolRegistryTests
         var clientResult = GameToolRegistry.ApplyToolResult(result, state);
 
         Assert.Same(result, clientResult);
+    }
+
+    [Fact]
+    public void ApplyToolResult_DiceSuccess_IncrementsStreak()
+    {
+        var state = new PlayerState();
+        var success = new DiceCheckResult(15, 2, 17, 12, Success: true, CriticalSuccess: false, CriticalFailure: false, "Attack", "strength");
+
+        GameToolRegistry.ApplyToolResult(success, state);
+        Assert.Equal(1, state.SuccessStreak);
+
+        GameToolRegistry.ApplyToolResult(success, state);
+        Assert.Equal(2, state.SuccessStreak);
+        Assert.Equal(2, state.MaxStreak);
+    }
+
+    [Fact]
+    public void ApplyToolResult_DiceFailure_ResetsStreak()
+    {
+        var state = new PlayerState { SuccessStreak = 3, MaxStreak = 3 };
+        var failure = new DiceCheckResult(3, 2, 5, 12, Success: false, CriticalSuccess: false, CriticalFailure: false, "Attack", "strength");
+
+        GameToolRegistry.ApplyToolResult(failure, state);
+
+        Assert.Equal(0, state.SuccessStreak);
+        Assert.Equal(3, state.MaxStreak); // Max streak preserved
+    }
+
+    [Fact]
+    public void ApplyToolResult_GiveItem_SetsRarity()
+    {
+        var state = new PlayerState();
+        var result = new ItemResult("Fire Sword", "Burns!", "weapon", "🔥", "legendary", Added: true);
+
+        GameToolRegistry.ApplyToolResult(result, state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal("legendary", state.Inventory[0].Rarity);
     }
 }

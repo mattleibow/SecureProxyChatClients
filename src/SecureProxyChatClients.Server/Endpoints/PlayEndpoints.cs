@@ -192,20 +192,20 @@ public static class PlayEndpoints
             case "warrior":
                 state.Stats["strength"] = 14;
                 state.Stats["dexterity"] = 10;
-                state.Inventory.Add(new InventoryItem { Name = "Iron Sword", Emoji = "⚔️", Type = "weapon", Description = "A sturdy blade" });
-                state.Inventory.Add(new InventoryItem { Name = "Leather Shield", Emoji = "🛡️", Type = "armor", Description = "Basic protection" });
+                state.Inventory.Add(new InventoryItem { Name = "Iron Sword", Emoji = "⚔️", Type = "weapon", Rarity = "common", Description = "A sturdy blade" });
+                state.Inventory.Add(new InventoryItem { Name = "Leather Shield", Emoji = "🛡️", Type = "armor", Rarity = "common", Description = "Basic protection" });
                 break;
             case "rogue":
                 state.Stats["dexterity"] = 14;
                 state.Stats["charisma"] = 12;
-                state.Inventory.Add(new InventoryItem { Name = "Twin Daggers", Emoji = "🗡️", Type = "weapon", Description = "Quick and deadly" });
-                state.Inventory.Add(new InventoryItem { Name = "Lockpicks", Emoji = "🔧", Type = "key", Description = "Opens most locks" });
+                state.Inventory.Add(new InventoryItem { Name = "Twin Daggers", Emoji = "🗡️", Type = "weapon", Rarity = "uncommon", Description = "Quick and deadly" });
+                state.Inventory.Add(new InventoryItem { Name = "Lockpicks", Emoji = "🔧", Type = "key", Rarity = "uncommon", Description = "Opens most locks" });
                 break;
             case "mage":
                 state.Stats["wisdom"] = 14;
                 state.Stats["charisma"] = 12;
-                state.Inventory.Add(new InventoryItem { Name = "Oak Staff", Emoji = "🪄", Type = "weapon", Description = "Channels arcane energy" });
-                state.Inventory.Add(new InventoryItem { Name = "Spellbook", Emoji = "📕", Type = "misc", Description = "Contains basic incantations" });
+                state.Inventory.Add(new InventoryItem { Name = "Oak Staff", Emoji = "🪄", Type = "weapon", Rarity = "uncommon", Description = "Channels arcane energy" });
+                state.Inventory.Add(new InventoryItem { Name = "Spellbook", Emoji = "📕", Type = "misc", Rarity = "rare", Description = "Contains basic incantations" });
                 break;
             default:
                 state.Inventory.Add(new InventoryItem { Name = "Walking Stick", Emoji = "🏒", Type = "weapon", Description = "Better than nothing" });

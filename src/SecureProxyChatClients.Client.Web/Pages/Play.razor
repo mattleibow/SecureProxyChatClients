@@ -129,12 +129,17 @@ else if (playerState is not null)
                 <span class="stat-sep">│</span>
                 <span class="stat-label">HP</span>
                 <span class="stat-value stat-hp">@playerState.Health/@playerState.MaxHealth</span>
-                <div class="health-bar">
-                    <div class="health-bar-fill" style="width: @(playerState.MaxHealth > 0 ? (int)(100.0 * playerState.Health / playerState.MaxHealth) : 0)%"></div>
+                <div class="health-bar @(playerState.Health < playerState.MaxHealth * 0.25 ? "health-critical" : "")">
+                    <div class="health-bar-fill" style="width: @(playerState.MaxHealth > 0 ? (int)(100.0 * playerState.Health / playerState.MaxHealth) : 0)%; transition: width 0.3s ease;"></div>
                 </div>
                 <span class="stat-sep">│</span>
                 <span class="stat-value stat-gold">💰@playerState.Gold</span>
                 <span class="stat-value stat-xp">✨@playerState.Experience</span>
+                @if (playerState.SuccessStreak > 1)
+                {
+                    <span class="stat-sep">│</span>
+                    <span class="stat-value stat-streak">🔥x@playerState.SuccessStreak</span>
+                }
                 <span class="ms-auto stat-value">📍 @playerState.CurrentLocation</span>
             </div>
 
@@ -253,7 +258,7 @@ else if (playerState is not null)
                     {
                         @foreach (var item in playerState.Inventory)
                         {
-                            <div class="inventory-item" title="@item.Description">
+                            <div class="inventory-item rarity-@item.Rarity" title="@item.Description">
                                 @item.Emoji @item.Name
                                 @if (item.Quantity > 1) { <small class="text-muted">x@(item.Quantity)</small> }
                             </div>
