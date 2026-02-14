@@ -237,4 +237,66 @@ public class GameToolsTests
         var result = GameTools.GiveItem("Sword", "desc", "weapon", string.Concat(Enumerable.Repeat("x", 20)));
         Assert.True(result.Emoji.Length <= 10);
     }
+
+    [Fact]
+    public void RollCheck_CriticalSuccess_WhenRoll20()
+    {
+        // Run many iterations; any result with Roll=20 must have CriticalSuccess=true
+        for (int i = 0; i < 1000; i++)
+        {
+            var result = GameTools.RollCheck("strength", 10, "test");
+            if (result.Roll == 20)
+            {
+                Assert.True(result.CriticalSuccess);
+            }
+        }
+    }
+
+    [Fact]
+    public void RollCheck_CriticalFailure_WhenRoll1()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            var result = GameTools.RollCheck("strength", 10, "test");
+            if (result.Roll == 1)
+            {
+                Assert.True(result.CriticalFailure);
+            }
+        }
+    }
+
+    [Fact]
+    public void RollCheck_DexterityHasModifier2()
+    {
+        var result = GameTools.RollCheck("dexterity", 1, "test");
+        Assert.Equal(2, result.Modifier);
+    }
+
+    [Fact]
+    public void RollCheck_CharismaHasModifier1()
+    {
+        var result = GameTools.RollCheck("charisma", 1, "test");
+        Assert.Equal(1, result.Modifier);
+    }
+
+    [Fact]
+    public void RollCheck_SuccessWhenTotalGEDifficulty()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            var result = GameTools.RollCheck("strength", 10, "test");
+            if (result.CriticalSuccess)
+            {
+                Assert.True(result.Success);
+            }
+            else if (result.CriticalFailure)
+            {
+                Assert.False(result.Success);
+            }
+            else
+            {
+                Assert.Equal(result.Total >= result.Difficulty, result.Success);
+            }
+        }
+    }
 }

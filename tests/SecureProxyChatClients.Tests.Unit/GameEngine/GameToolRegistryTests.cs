@@ -225,4 +225,80 @@ public class GameToolRegistryTests
         Assert.Single(state.Inventory);
         Assert.Equal("legendary", state.Inventory[0].Rarity);
     }
+
+    [Fact]
+    public void ApplyToolResult_ExperienceResult_MultiLevelUp()
+    {
+        // Level 1, threshold = 100. Award 250 XP.
+        // Code only levels up once per call, so expect level 2.
+        var state = new PlayerState { Level = 1, Experience = 0, Health = 100, MaxHealth = 100 };
+        var xp = new ExperienceResult(250, "Boss defeated");
+
+        GameToolRegistry.ApplyToolResult(xp, state);
+
+        Assert.True(state.Level >= 2);
+        Assert.Equal(250, state.Experience);
+    }
+
+    [Fact]
+    public void ApplyToolResult_ExperienceResult_MaxHealthIncreasesPerLevel()
+    {
+        var state = new PlayerState { Level = 1, Experience = 90, Health = 100, MaxHealth = 100 };
+        var xp = new ExperienceResult(20, "Quest done");
+
+        GameToolRegistry.ApplyToolResult(xp, state);
+
+        Assert.Equal(2, state.Level);
+        Assert.Equal(110, state.MaxHealth);
+    }
+
+    [Fact]
+    public void ApplyToolResult_GiveItem_DuplicateItemAddsSecondEntry()
+    {
+        // The code always adds a new InventoryItem; it does not merge duplicates.
+        var state = new PlayerState();
+        var item1 = new ItemResult("Healing Potion", "Heals", "potion", "🧪", "common", Added: true);
+        var item2 = new ItemResult("Healing Potion", "Heals", "potion", "🧪", "common", Added: true);
+
+        GameToolRegistry.ApplyToolResult(item1, state);
+        GameToolRegistry.ApplyToolResult(item2, state);
+
+        Assert.Equal(2, state.Inventory.Count);
+        Assert.All(state.Inventory, i => Assert.Equal("Healing Potion", i.Name));
+    }
+
+    [Fact]
+    public void ApplyToolResult_TakeItem_NonexistentItem_NoError()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Torch" });
+        var result = new ItemResult("Nonexistent", "", "", "", "common", Added: false);
+
+        GameToolRegistry.ApplyToolResult(result, state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal("Torch", state.Inventory[0].Name);
+    }
+
+    [Fact]
+    public void ApplyToolResult_HealthResult_AtZero_StaysAtZero()
+    {
+        var state = new PlayerState { Health = 0, MaxHealth = 100 };
+        var damage = new HealthResult(-10, "Poison");
+
+        GameToolRegistry.ApplyToolResult(damage, state);
+
+        Assert.Equal(0, state.Health);
+    }
+
+    [Fact]
+    public void ApplyToolResult_GoldResult_LargeGain()
+    {
+        var state = new PlayerState { Gold = 10 };
+        var gold = new GoldResult(500, "Jackpot");
+
+        GameToolRegistry.ApplyToolResult(gold, state);
+
+        Assert.Equal(510, state.Gold);
+    }
 }
