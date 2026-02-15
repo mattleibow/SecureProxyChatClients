@@ -332,13 +332,26 @@ public class GameToolRegistryTests
     }
 
     [Fact]
-    public void ApplyToolResult_GiveItem_DuplicateName_BothKept()
+    public void ApplyToolResult_GiveItem_DuplicateName_MergesStack()
     {
         var state = new PlayerState();
         GameToolRegistry.ApplyToolResult(
             new ItemResult("Potion", "Heals", "potion", "🧪", "common", Added: true), state);
         GameToolRegistry.ApplyToolResult(
-            new ItemResult("Potion", "Heals more", "potion", "🧪", "uncommon", Added: true), state);
+            new ItemResult("Potion", "Heals", "potion", "🧪", "common", Added: true), state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal(2, state.Inventory[0].Quantity);
+    }
+
+    [Fact]
+    public void ApplyToolResult_GiveItem_NewItem_AddsToInventory()
+    {
+        var state = new PlayerState();
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("Sword", "Sharp", "weapon", "⚔️", "common", Added: true), state);
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("Shield", "Sturdy", "armor", "🛡️", "common", Added: true), state);
 
         Assert.Equal(2, state.Inventory.Count);
     }
@@ -643,5 +656,54 @@ public class GameToolRegistryTests
         var result = GameToolRegistry.ApplyToolResult(unknownResult, state);
 
         Assert.Equal("some string", result);
+    }
+
+    // ── GiveItem Stack Merging ──────────────────────────────────────────
+
+    [Fact]
+    public void ApplyToolResult_GiveItem_StacksMergeQuantity()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Healing Potion", Quantity = 2 });
+
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("Healing Potion", "Restores 25 HP", "potion", "🧪", "common", Added: true), state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal(3, state.Inventory[0].Quantity);
+    }
+
+    [Fact]
+    public void ApplyToolResult_GiveItem_StackMergeCaseInsensitive()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Iron Sword", Quantity = 1 });
+
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("iron sword", "A blade", "weapon", "⚔️", "common", Added: true), state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal(2, state.Inventory[0].Quantity);
+    }
+
+    [Fact]
+    public void ApplyToolResult_GiveAndTake_FullCycle()
+    {
+        var state = new PlayerState();
+
+        // Give 3 potions (one at a time, merging)
+        for (int i = 0; i < 3; i++)
+            GameToolRegistry.ApplyToolResult(
+                new ItemResult("Bomb", "Explodes", "misc", "💣", "common", Added: true), state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal(3, state.Inventory[0].Quantity);
+
+        // Take them all back
+        for (int i = 0; i < 3; i++)
+            GameToolRegistry.ApplyToolResult(
+                new ItemResult("Bomb", "", "", "", "common", Added: false), state);
+
+        Assert.Empty(state.Inventory);
     }
 }

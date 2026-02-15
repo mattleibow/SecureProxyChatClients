@@ -151,7 +151,7 @@ Your HP represents your character's vitality — how much punishment you can tak
 - **Starting HP:** 100
 - **Damage** reduces your HP
 - **Healing** (potions, rest, magic) restores HP
-- **At 0 HP:** Your character is **incapacitated** — the adventure isn't over, but you're in serious trouble
+- **At 0 HP:** Your character is **defeated** — you must start a new game to continue
 - ⚠️ **Critical Warning:** When your HP drops below **25%**, you'll see a visual pulse animation on your health bar — a clear signal to heal up or retreat!
 
 ### Inventory
@@ -300,7 +300,9 @@ When words fail and diplomacy breaks down, it's time to fight. Combat in LoreEng
 
 ### Defeat
 
-If your HP reaches **0**, your character is **incapacitated**. This isn't permanent death — LoreEngine is about story, and even defeat becomes part of your tale. But it will have consequences.
+If your HP reaches **0**, your character is **defeated** and cannot take further actions. You must start a new game to continue your adventure. Use this as motivation to manage your health carefully — stock up on Healing Potions and know when to flee!
+
+> **Note:** The game enforces defeat at 0 HP. You cannot move, fight, or interact until you create a new character.
 
 ---
 
@@ -388,8 +390,12 @@ As you adventure, you grow stronger. LoreEngine tracks your experience and rewar
 
 ### Leveling Up
 
-As you accumulate XP, you'll level up. Each level brings:
+As you accumulate XP, you'll level up. The XP required for each level is **Level × 100** (Level 1 → 100 XP, Level 2 → 200 XP, etc.). Any excess XP carries over.
 
+Each level brings:
+
+- **+10 Max Health** — your maximum HP increases
+- **Full heal** — your HP is restored to the new maximum on level-up
 - **Stronger encounters** — the world scales with you
 - **Better rewards** — higher-level creatures drop better loot
 - **A sense of accomplishment** — track your growth from a Level 1 nobody to a legendary hero
@@ -405,7 +411,7 @@ LoreEngine features **18 achievements** across 5 categories. Achievements are mi
 | Achievement | Description |
 |---|---|
 | **First Blood** | Win your first combat encounter. Every legend starts somewhere. |
-| **Crit Machine** | Land multiple critical hits. The dice *love* you. |
+| **Critical Hit** | Land a critical hit (natural 20). The dice smiled upon you. |
 | **Survivor** | Survive a battle with critically low HP. You stared death in the face and said "not today." |
 | **Dragon Slayer** | Defeat the Ancient Dragon. The ultimate test of skill and courage. |
 
@@ -415,7 +421,7 @@ LoreEngine features **18 achievements** across 5 categories. Achievements are mi
 |---|---|
 | **First Steps** | Leave The Crossroads for the first time. The journey begins. |
 | **World Walker** | Visit a significant number of locations. You've seen things. |
-| **Cartographer** | Discover every location on the map. You know this world like the back of your hand. |
+| **Cartographer** | Visit at least 10 locations. You know this world like the back of your hand. |
 
 ### 💬 Social Achievements
 
@@ -792,7 +798,7 @@ Modifiers use D&D formula: **(Stat − 10) ÷ 2** (rounded toward zero).
 | # | Category | Achievement | ☐ |
 |---|---|---|---|
 | 1 | ⚔️ Combat | First Blood | ☐ |
-| 2 | ⚔️ Combat | Crit Machine | ☐ |
+| 2 | ⚔️ Combat | Critical Hit | ☐ |
 | 3 | ⚔️ Combat | Survivor | ☐ |
 | 4 | ⚔️ Combat | Dragon Slayer | ☐ |
 | 5 | 🗺️ Exploration | First Steps | ☐ |

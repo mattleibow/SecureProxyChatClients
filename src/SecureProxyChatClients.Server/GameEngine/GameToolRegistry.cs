@@ -50,14 +50,24 @@ public sealed class GameToolRegistry
                 return result;
 
             case ItemResult item when item.Added:
-                state.Inventory.Add(new InventoryItem
+                // Merge into existing stack if same item name exists
+                var existingItem = state.Inventory.FirstOrDefault(
+                    i => i.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
+                if (existingItem is not null)
                 {
-                    Name = item.Name,
-                    Description = item.Description,
-                    Type = item.Type,
-                    Emoji = item.Emoji,
-                    Rarity = item.Rarity,
-                });
+                    existingItem.Quantity++;
+                }
+                else
+                {
+                    state.Inventory.Add(new InventoryItem
+                    {
+                        Name = item.Name,
+                        Description = item.Description,
+                        Type = item.Type,
+                        Emoji = item.Emoji,
+                        Rarity = item.Rarity,
+                    });
+                }
                 return result;
 
             case ItemResult item when !item.Added:

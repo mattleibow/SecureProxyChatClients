@@ -271,6 +271,10 @@ public static class PlayEndpoints
 
         var playerState = await gameStateStore.GetOrCreatePlayerStateAsync(userId, cancellationToken);
 
+        // Prevent actions when player is defeated (0 HP)
+        if (playerState.Health <= 0)
+            return Results.BadRequest(new { error = "Your character has been defeated. Start a new game to continue." });
+
         // Recall past story memories for context
         var recentMemories = await memoryService.GetRecentMemoriesAsync(userId, 5, cancellationToken);
         string memoryContext = recentMemories.Count > 0
@@ -301,17 +305,15 @@ public static class PlayEndpoints
         }
 
         // Build messages with DM system prompt + game context
-        var systemMessage = new ChatMessageDto { Role = "system", Content = $"{DmSystemPrompt}\n\n{gameContext}" };
-        var allMessages = new List<ChatMessageDto> { systemMessage };
-        allMessages.AddRange(sanitizedRequest.Messages);
-
-        List<ChatMessage> chatMessages = allMessages.Select(m =>
-            new ChatMessage(m.Role switch
-            {
-                "system" => ChatRole.System,
-                "assistant" => ChatRole.Assistant,
-                _ => ChatRole.User,
-            }, m.Content)).ToList();
+        // Only accept user-role messages from client input; system prompt is server-injected.
+        // This prevents forged assistant/tool messages from being used for prompt injection.
+        var chatMessages = new List<ChatMessage>
+        {
+            new(ChatRole.System, $"{DmSystemPrompt}\n\n{gameContext}")
+        };
+        chatMessages.AddRange(sanitizedRequest.Messages
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            .Select(m => new ChatMessage(ChatRole.User, m.Content)));
 
         ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
 
@@ -466,6 +468,15 @@ public static class PlayEndpoints
         if (userId is null) { httpContext.Response.StatusCode = 401; return; }
 
         var playerState = await gameStateStore.GetOrCreatePlayerStateAsync(userId, cancellationToken);
+
+        // Prevent actions when player is defeated (0 HP)
+        if (playerState.Health <= 0)
+        {
+            httpContext.Response.StatusCode = 400;
+            await httpContext.Response.WriteAsJsonAsync(
+                new { error = "Your character has been defeated. Start a new game to continue." }, cancellationToken);
+            return;
+        }
         
         // Recall past story memories
         var recentMemories = await memoryService.GetRecentMemoriesAsync(userId, 5, cancellationToken);
@@ -501,14 +512,14 @@ public static class PlayEndpoints
             sessionId = await conversationStore.CreateSessionAsync(userId, cancellationToken);
         }
 
-        var systemMessage = new ChatMessage(ChatRole.System, $"{DmSystemPrompt}\n\n{gameContext}");
-        var chatMessages = new List<ChatMessage> { systemMessage };
-        chatMessages.AddRange(sanitizedRequest.Messages.Select(m =>
-            new ChatMessage(m.Role switch
-            {
-                "assistant" => ChatRole.Assistant,
-                _ => ChatRole.User,
-            }, m.Content)));
+        // Only accept user-role messages; system prompt is server-injected
+        var chatMessages = new List<ChatMessage>
+        {
+            new(ChatRole.System, $"{DmSystemPrompt}\n\n{gameContext}")
+        };
+        chatMessages.AddRange(sanitizedRequest.Messages
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            .Select(m => new ChatMessage(ChatRole.User, m.Content)));
 
         // Set SSE headers
         httpContext.Response.ContentType = "text/event-stream";
@@ -644,6 +655,16 @@ public static class PlayEndpoints
         catch (Exception ex)
         {
             logger.LogError(ex, "Play stream error for user {UserId}", userId);
+        }
+
+        // Always persist game state after streaming (covers max-tool-rounds and error exits)
+        try
+        {
+            await gameStateStore.SavePlayerStateAsync(userId, playerState, CancellationToken.None);
+        }
+        catch (InvalidOperationException)
+        {
+            // Concurrency conflict or already saved — best effort
         }
 
         // Persist — apply final content filter to catch split-XSS before storage
