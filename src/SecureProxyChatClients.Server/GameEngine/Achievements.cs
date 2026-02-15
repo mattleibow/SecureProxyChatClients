@@ -12,7 +12,7 @@ public static class Achievements
     [
         // Combat
         new("first-blood", "First Blood", "Win your first combat encounter", "⚔️", "combat"),
-        new("critical-hit", "Crit Machine", "Roll a natural 20", "🎯", "combat"),
+        new("critical-hit", "Critical Hit", "Roll a natural 20", "🎯", "combat"),
         new("survivor", "Survivor", "Survive a fight with less than 5 HP", "💪", "combat"),
         new("dragon-slayer", "Dragon Slayer", "Defeat an Ancient Dragon", "🐉", "combat"),
 

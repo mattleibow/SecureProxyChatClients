@@ -167,3 +167,10 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-15: Bestiary.GetEncounterCreature must handle empty result from GetCreaturesForLevel — fallback to Creatures[^1] to avoid Random.Next(0) crash at very high player levels.
 - 2026-02-15: Twist endpoint concurrency: catch InvalidOperationException from SavePlayerStateAsync — achievement will be awarded on next request if concurrent conflict occurs.
 - 2026-02-15: Player handbook stat modifiers MUST match code: D&D formula (stat-10)/2, not fixed +2/+1 values. Keep tables synced with actual game engine.
+- 2026-02-15: Play endpoints must ONLY accept user-role messages from client. System prompt is server-injected. assistant/tool roles from clients in Play endpoints enable forged prompt injection.
+- 2026-02-15: GiveItem must merge stacks: if same-name item exists (case-insensitive), increment Quantity. Otherwise add new entry. Prevents inventory clutter.
+- 2026-02-15: Death check: HandlePlayAsync and HandlePlayStreamAsync must reject actions when playerState.Health <= 0. Dead players must start a new game.
+- 2026-02-15: Stream state persistence: state must be saved AFTER the streaming try/catch block (not just inside functionCalls==0 branch). Covers max-tool-rounds exit and error paths.
+- 2026-02-15: DC scale runs 1-30 (not 1-20). Code clamps difficulty to Math.Clamp(dc, 1, 30). Handbook must match.
+- 2026-02-15: Bestiary DM prompt format: "XP {xp}, Gold {gold}" — no stray suffix characters. Previously had "XP {xp}g {gold}gp" which was misleading.
+- 2026-02-15: Achievement docs must match code: "Critical Hit" (not "Crit Machine"), "Cartographer" requires 10 locations (not all 12).

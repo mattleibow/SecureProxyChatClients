@@ -282,7 +282,7 @@ Max creature level = Player Level + 2
 | ID | Title | Emoji | Condition | Trigger |
 |---|---|---|---|---|
 | `first-blood` | First Blood | ⚔️ | Win first combat encounter | Event-based |
-| `critical-hit` | Crit Machine | 🎯 | Roll a natural 20 | Event-based |
+| `critical-hit` | Critical Hit | 🎯 | Roll a natural 20 | Event-based |
 | `survivor` | Survivor | 💪 | Survive fight with < 5 HP | Event-based |
 | `dragon-slayer` | Dragon Slayer | 🐉 | Defeat an Ancient Dragon | Event-based |
 
@@ -479,7 +479,7 @@ All endpoints require bearer token authentication and are rate-limited.
 | # | Cat | ID | Title | Emoji | ☐ |
 |---|---|---|---|---|---|
 | 1 | ⚔️ | `first-blood` | First Blood | ⚔️ | ☐ |
-| 2 | ⚔️ | `critical-hit` | Crit Machine | 🎯 | ☐ |
+| 2 | ⚔️ | `critical-hit` | Critical Hit | 🎯 | ☐ |
 | 3 | ⚔️ | `survivor` | Survivor | 💪 | ☐ |
 | 4 | ⚔️ | `dragon-slayer` | Dragon Slayer | 🐉 | ☐ |
 | 5 | 🗺️ | `first-steps` | First Steps | 👣 | ☐ |
