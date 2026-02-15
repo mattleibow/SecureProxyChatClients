@@ -309,7 +309,8 @@ public static class PlayEndpoints
         ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
 
         // Persist the user's message for session history
-        var userMessages = sanitizedRequest.Messages.Where(m => m.Role == "user").ToList();
+        var userMessages = sanitizedRequest.Messages
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase)).ToList();
         if (userMessages.Count > 0)
             await conversationStore.AppendMessagesAsync(sessionId, userMessages, cancellationToken);
 
@@ -516,7 +517,8 @@ public static class PlayEndpoints
         List<GameEvent> gameEvents = [];
 
         // Persist the user's message for session history
-        var userMessages = sanitizedRequest.Messages.Where(m => m.Role == "user").ToList();
+        var userMessages = sanitizedRequest.Messages
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase)).ToList();
         if (userMessages.Count > 0)
             await conversationStore.AppendMessagesAsync(sessionId, userMessages, cancellationToken);
 
