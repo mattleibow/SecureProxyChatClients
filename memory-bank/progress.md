@@ -2,11 +2,11 @@
 
 ## Current Status (2026-02-15)
 - **Build**: ✅ 0 errors
-- **Unit Tests**: 373 passing
+- **Unit Tests**: 378 passing
 - **Integration Tests**: 32 passing
 - **Walkthrough Test**: ✅ 27 steps, all passing with real Azure OpenAI
-- **Total**: 405 tests passing
-- **Git**: pushed to origin/main (commit 6424152)
+- **Total**: 410 tests passing
+- **Git**: pushed to origin/main (commit eaf6cf4)
 - **Convergence**: Both Gemini and Codex say CONVERGED after 4+ review rounds
 
 ## Recent Session Work
@@ -33,6 +33,8 @@
 - High: twist-of-fate triggered by Oracle → moved to Twist endpoint
 - High: API docs stale → synced all contracts
 - High: Forwarded headers trusted all → keep loopback defaults
+- High: TakeItem removes whole stack → now decrements Quantity
+- High: Bestiary GetEncounterCreature crashes on empty list → fallback to last creature
 - Medium: UseRateLimiter before UseAuthentication → moved after UseAuthentication
 - Medium: InMemoryStoryMemoryService unsynchronized → added Lock
 - Medium: Empty/whitespace user messages pass validation → rejected
@@ -40,7 +42,12 @@
 - Medium: Memory content logged → metadata only
 - Medium: Location validation → WorldMap normalization
 - Medium: dragon-slayer/secret-keeper never awarded → implemented via CombatResult/NpcResult
+- Medium: Bestiary DM prompt XP formatting → removed stray 'g' suffix
+- Medium: DC scale handbook says 1-20 but code clamps 1-30 → updated docs to 1-30 with Legendary tier
+- Medium: Twist endpoint lacked concurrency handler → added
 - Low: Oracle docs incorrect → updated
+- Low: NPC whitespace/empty HiddenSecret → confirmed properly handled, tests added
+- Low: GameStateStore concurrency/version/copy tests → added
 
 ### Acknowledged (Not Fixed)
 - Medium: sessionStorage token (XSS risk) → BFF cookies planned for future
