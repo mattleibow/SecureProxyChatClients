@@ -31,7 +31,7 @@ Configuration is loaded in the following order (highest priority wins):
 
 | Key | Environment Variable | Default |
 |-----|---------------------|---------|
-| `Security:MaxMessages` | `Security__MaxMessages` | 10 |
+| `Security:MaxMessages` | `Security__MaxMessages` | 50 |
 | `Security:MaxMessageLength` | `Security__MaxMessageLength` | 4,000 |
 | `Security:MaxTotalLength` | `Security__MaxTotalLength` | 50,000 |
 

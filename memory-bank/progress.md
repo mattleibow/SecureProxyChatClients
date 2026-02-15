@@ -2,11 +2,11 @@
 
 ## Current Status (2026-02-16)
 - **Build**: ✅ 0 errors
-- **Unit Tests**: 314 passing
+- **Unit Tests**: 307 passing
 - **Integration Tests**: 32 passing
 - **Walkthrough Test**: ✅ 27 steps, all passing with real Azure OpenAI
-- **Total**: 346+ tests passing
-- **Git**: pushed to origin/main
+- **Total**: 339 tests passing
+- **Git**: pushed to origin/main (commit 8589c01)
 
 ## Recent Session Work
 1. Fixed WASM loading in Playwright tests (stale client fingerprints)
@@ -32,9 +32,13 @@
 - High: twist-of-fate triggered by Oracle → moved to Twist endpoint
 - High: API docs stale → synced all contracts
 - High: Forwarded headers trusted all → keep loopback defaults
+- Medium: UseRateLimiter before UseAuthentication → moved after UseAuthentication
+- Medium: InMemoryStoryMemoryService unsynchronized → added Lock
+- Medium: Empty/whitespace user messages pass validation → rejected
 - Medium: first-loot threshold wrong → >3
 - Medium: Memory content logged → metadata only
 - Medium: Location validation → WorldMap normalization
+- Medium: dragon-slayer/secret-keeper never awarded → implemented via CombatResult/NpcResult
 - Low: Oracle docs incorrect → updated
 
 ### Acknowledged (Not Fixed)

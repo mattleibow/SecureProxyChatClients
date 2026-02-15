@@ -158,3 +158,8 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-16: X-Forwarded headers: do NOT clear KnownNetworks/KnownProxies (makes ALL sources trusted). Keep defaults (loopback), set ForwardLimit=2.
 - 2026-02-16: Never log user content (memory/chat). Log metadata only (type, userId, length) to prevent sensitive data in logs.
 - 2026-02-16: first-loot achievement threshold: Count > 3 (not >2). Characters start with 3 items (class weapon + shield/accessory + 2x potions counted as single slot).
+- 2026-02-16: Middleware ordering: UseRateLimiter() MUST come AFTER UseAuthentication()/UseAuthorization() so per-user rate limiting can read bearer claims. Otherwise partitions by IP only.
+- 2026-02-16: InMemoryStoryMemoryService is a singleton — must use Lock (System.Threading.Lock) for thread safety when accessing List<StoryMemory>. ConcurrentBag is not suitable (needs ordered enumeration).
+- 2026-02-16: InputValidator must reject empty/whitespace user messages. Check string.IsNullOrWhiteSpace(message.Content) for role="user" messages specifically.
+- 2026-02-16: secret-keeper achievement: awarded when NPC has a non-trivial HiddenSecret (not "None" or empty). Tracked in ApplyToolResult NpcResult handler.
+- 2026-02-16: dragon-slayer achievement: awarded via CombatResult when CreatureName contains "Ancient Dragon" (case-insensitive). RecordCombatWin tool must be called by AI after defeating a creature.

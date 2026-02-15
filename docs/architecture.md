@@ -276,7 +276,7 @@ Configuration is loaded in this precedence order (highest wins):
 | `AI:CopilotCli` | `Model` | `gpt-5-mini` | Model override for CopilotCli provider |
 | `Client` | `Origin` | `https://localhost:5002` | Allowed CORS origin |
 | `RateLimiting` | `PermitLimit`, `WindowSeconds` | 30 requests / 60 seconds | Token bucket rate limiter tuning |
-| `Security` | `MaxMessages`, `MaxMessageLength`, `MaxTotalLength`, `AllowedToolNames`, `BlockedPatterns` | 10 messages, 4000 chars, 50000 total | Input validation thresholds |
+| `Security` | `MaxMessages`, `MaxMessageLength`, `MaxTotalLength`, `AllowedToolNames`, `BlockedPatterns` | 50 messages, 4000 chars, 50000 total | Input validation thresholds |
 | `ConnectionStrings` | `DefaultConnection`, `VectorStore` | `Data Source=app.db` | SQLite (conversations) and PostgreSQL (vectors) |
 | `SeedUser` | `Email`, `Password` | `test@test.com` / `TestPassword1!` | Development seed user |
 

@@ -60,7 +60,7 @@ All client input passes through `InputValidator` before reaching any AI service.
 
 | Limit | Default | Configurable |
 |---|---|---|
-| Maximum messages per request | 10 | `Security:MaxMessages` |
+| Maximum messages per request | 50 | `Security:MaxMessages` |
 | Maximum characters per message | 4,000 | `Security:MaxMessageLength` |
 | Maximum total characters across all messages | 50,000 | `Security:MaxTotalLength` |
 | Maximum session ID length | 128 characters | Validated at endpoint level |

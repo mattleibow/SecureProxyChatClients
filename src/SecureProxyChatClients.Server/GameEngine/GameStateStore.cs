@@ -6,6 +6,7 @@ public interface IGameStateStore
 {
     Task<PlayerState> GetOrCreatePlayerStateAsync(string userId, CancellationToken ct = default);
     Task SavePlayerStateAsync(string userId, PlayerState state, CancellationToken ct = default);
+    Task ResetPlayerStateAsync(string userId, PlayerState newState, CancellationToken ct = default);
 }
 
 public sealed class InMemoryGameStateStore : IGameStateStore
@@ -69,5 +70,24 @@ public sealed class InMemoryGameStateStore : IGameStateStore
     {
         var json = System.Text.Json.JsonSerializer.Serialize(source);
         return System.Text.Json.JsonSerializer.Deserialize<PlayerState>(json)!;
+    }
+
+    /// <summary>
+    /// Replaces player state unconditionally (bypasses version check). Used for new game / reset.
+    /// </summary>
+    public async Task ResetPlayerStateAsync(string userId, PlayerState newState, CancellationToken ct = default)
+    {
+        var userLock = _locks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+        await userLock.WaitAsync(ct);
+
+        try
+        {
+            newState.Version = 1;
+            _states[userId] = Clone(newState);
+        }
+        finally
+        {
+            userLock.Release();
+        }
     }
 }

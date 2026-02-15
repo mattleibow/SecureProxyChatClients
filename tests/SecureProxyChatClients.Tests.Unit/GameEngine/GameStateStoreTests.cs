@@ -55,4 +55,49 @@ public class GameStateStoreTests
         Assert.Equal("Adventurer", state2.Name);
         Assert.NotEqual(state1.PlayerId, state2.PlayerId);
     }
+
+    [Fact]
+    public async Task ResetPlayerState_OverwritesExistingState()
+    {
+        var store = new InMemoryGameStateStore();
+
+        // Create and save initial state
+        var state = await store.GetOrCreatePlayerStateAsync("user1");
+        state.Name = "OldHero";
+        state.Level = 5;
+        state.Gold = 500;
+        await store.SavePlayerStateAsync("user1", state);
+
+        // Reset with a fresh state (simulates new game)
+        var newState = new PlayerState { PlayerId = "user1", Name = "NewHero" };
+        await store.ResetPlayerStateAsync("user1", newState);
+
+        var retrieved = await store.GetOrCreatePlayerStateAsync("user1");
+        Assert.Equal("NewHero", retrieved.Name);
+        Assert.Equal(1, retrieved.Level);
+        Assert.Equal(10, retrieved.Gold); // Default starting gold
+    }
+
+    [Fact]
+    public async Task ResetPlayerState_AllowsSubsequentSave()
+    {
+        var store = new InMemoryGameStateStore();
+
+        // Save initial state
+        var state = new PlayerState { PlayerId = "user1", Name = "Hero" };
+        await store.ResetPlayerStateAsync("user1", state);
+
+        // Modify and save
+        var current = await store.GetOrCreatePlayerStateAsync("user1");
+        current.Gold = 50;
+        await store.SavePlayerStateAsync("user1", current);
+
+        // Reset again (should not throw version conflict)
+        var resetState = new PlayerState { PlayerId = "user1", Name = "NewGame" };
+        await store.ResetPlayerStateAsync("user1", resetState);
+
+        var final = await store.GetOrCreatePlayerStateAsync("user1");
+        Assert.Equal("NewGame", final.Name);
+        Assert.Equal(10, final.Gold); // Default starting gold
+    }
 }

@@ -238,7 +238,7 @@ public static class PlayEndpoints
 
         state.Inventory.Add(new InventoryItem { Name = "Healing Potion", Emoji = "🧪", Type = "potion", Description = "Restores 25 HP", Quantity = 2 });
 
-        await gameStateStore.SavePlayerStateAsync(userId, state, ct);
+        await gameStateStore.ResetPlayerStateAsync(userId, state, ct);
         return Results.Ok(state);
     }
 
@@ -307,6 +307,11 @@ public static class PlayEndpoints
             }, m.Content)).ToList();
 
         ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
+
+        // Persist the user's message for session history
+        var userMessages = sanitizedRequest.Messages.Where(m => m.Role == "user").ToList();
+        if (userMessages.Count > 0)
+            await conversationStore.AppendMessagesAsync(sessionId, userMessages, cancellationToken);
 
         // Tool execution loop with state tracking and timeout
         List<GameEvent> gameEvents = [];
@@ -510,6 +515,11 @@ public static class PlayEndpoints
         ChatOptions chatOptions = new() { Tools = [.. gameToolRegistry.Tools] };
         List<GameEvent> gameEvents = [];
 
+        // Persist the user's message for session history
+        var userMessages = sanitizedRequest.Messages.Where(m => m.Role == "user").ToList();
+        if (userMessages.Count > 0)
+            await conversationStore.AppendMessagesAsync(sessionId, userMessages, cancellationToken);
+
         // Tool execution loop (same as non-streaming, but we stream the final text)
         var fullText = new System.Text.StringBuilder();
         try
@@ -559,8 +569,17 @@ public static class PlayEndpoints
                         }
                     }
 
-                    // Save state
-                    await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+                    // Save state — handle concurrency conflicts explicitly
+                    try
+                    {
+                        await gameStateStore.SavePlayerStateAsync(userId, playerState, cancellationToken);
+                    }
+                    catch (InvalidOperationException concurrencyEx)
+                    {
+                        logger.LogWarning(concurrencyEx, "State concurrency conflict during stream for user {UserId}", userId);
+                        await WriteSseEventSafeAsync(httpContext, "error",
+                            new { error = "State conflict — another request modified your game state. Please refresh." });
+                    }
                     break;
                 }
 

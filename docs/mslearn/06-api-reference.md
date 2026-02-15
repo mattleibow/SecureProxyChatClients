@@ -265,7 +265,7 @@ Every API request passes through these security layers, in order:
 | Limit | Value | Enforced By |
 |-------|-------|-------------|
 | Maximum request body | 1 MB | Kestrel server configuration |
-| Maximum messages per request | 10 | Input validation |
+| Maximum messages per request | 50 | Input validation |
 | Maximum characters per message | 4,000 | Input validation |
 | Maximum total characters | 50,000 | Input validation |
 | Maximum tool result size | 32 KB | Tool result validation |
