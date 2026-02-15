@@ -163,3 +163,7 @@ _Updated as we go. Each entry is timestamped._
 - 2026-02-16: InputValidator must reject empty/whitespace user messages. Check string.IsNullOrWhiteSpace(message.Content) for role="user" messages specifically.
 - 2026-02-16: secret-keeper achievement: awarded when NPC has a non-trivial HiddenSecret (not "None" or empty). Tracked in ApplyToolResult NpcResult handler.
 - 2026-02-16: dragon-slayer achievement: awarded via CombatResult when CreatureName contains "Ancient Dragon" (case-insensitive). RecordCombatWin tool must be called by AI after defeating a creature.
+- 2026-02-15: TakeItem must decrement Quantity instead of removing the whole InventoryItem. Remove the item only when Quantity reaches 0 (or is 1 and being used).
+- 2026-02-15: Bestiary.GetEncounterCreature must handle empty result from GetCreaturesForLevel — fallback to Creatures[^1] to avoid Random.Next(0) crash at very high player levels.
+- 2026-02-15: Twist endpoint concurrency: catch InvalidOperationException from SavePlayerStateAsync — achievement will be awarded on next request if concurrent conflict occurs.
+- 2026-02-15: Player handbook stat modifiers MUST match code: D&D formula (stat-10)/2, not fixed +2/+1 values. Keep tables synced with actual game engine.
