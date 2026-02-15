@@ -240,6 +240,29 @@ public class AchievementsTests
         Assert.Contains("first-contact", state.UnlockedAchievements);
     }
 
+    [Fact]
+    public void ApplyToolResult_NpcWithWhitespaceSecret_NoSecretKeeper()
+    {
+        var state = new PlayerState();
+        var npc = new NpcResult("npc3", "Tim", "Farmer", "Quiet man", "   ", "neutral");
+
+        GameToolRegistry.ApplyToolResult(npc, state);
+
+        Assert.DoesNotContain("secret-keeper", state.UnlockedAchievements);
+        Assert.Contains("first-contact", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_NpcWithEmptySecret_NoSecretKeeper()
+    {
+        var state = new PlayerState();
+        var npc = new NpcResult("npc4", "Sue", "Cook", "Cheerful", "", "friendly");
+
+        GameToolRegistry.ApplyToolResult(npc, state);
+
+        Assert.DoesNotContain("secret-keeper", state.UnlockedAchievements);
+    }
+
     // ── Achievement Boundary Tests ──────────────────────────────────────
 
     [Fact]

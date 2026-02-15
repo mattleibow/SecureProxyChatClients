@@ -184,7 +184,7 @@ When you attempt something challenging — attacking a creature, picking a lock,
 
 ### Difficulty Class (DC) Scale
 
-The DC represents how hard a task is. The scale runs from 1 to 20:
+The DC represents how hard a task is. The scale runs from 1 to 30:
 
 | DC | Difficulty | Example |
 |---|---|---|
@@ -195,6 +195,7 @@ The DC represents how hard a task is. The scale runs from 1 to 20:
 | 15–17 | Hard | Dodging a trap in the dark |
 | 18–19 | Very Hard | Deciphering ancient runes |
 | 20 | Nearly Impossible | Talking down a raging dragon |
+| 21–30 | Legendary | Feats beyond mortal comprehension |
 
 ### Critical Rolls
 

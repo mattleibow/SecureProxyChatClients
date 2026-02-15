@@ -91,7 +91,7 @@ public static class Bestiary
         if (available.Count == 0) return "";
 
         var lines = available.Select(c =>
-            $"- {c.Emoji} {c.Name} (Lvl {c.Level}, HP {c.Health}, ATK DC {c.AttackDc}, DMG {c.Damage}, XP {c.XpReward}g {c.GoldDrop}gp): {c.Description} Abilities: {string.Join(", ", c.Abilities)}. Weakness: {c.Weakness}");
+            $"- {c.Emoji} {c.Name} (Lvl {c.Level}, HP {c.Health}, ATK DC {c.AttackDc}, DMG {c.Damage}, XP {c.XpReward}, Gold {c.GoldDrop}): {c.Description} Abilities: {string.Join(", ", c.Abilities)}. Weakness: {c.Weakness}");
 
         return $"\n\nAVAILABLE CREATURES FOR ENCOUNTERS (player level {playerLevel}):\n{string.Join("\n", lines)}";
     }

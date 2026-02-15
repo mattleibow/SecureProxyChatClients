@@ -100,4 +100,53 @@ public class GameStateStoreTests
         Assert.Equal("NewGame", final.Name);
         Assert.Equal(10, final.Gold); // Default starting gold
     }
+
+    [Fact]
+    public async Task SavePlayerState_ConcurrencyConflict_Throws()
+    {
+        var store = new InMemoryGameStateStore();
+
+        // Get state (version 0 in store)
+        var stateA = await store.GetOrCreatePlayerStateAsync("user1");
+        var stateB = await store.GetOrCreatePlayerStateAsync("user1");
+
+        // Save first copy (version 0 → 1 in store)
+        stateA.Gold = 100;
+        await store.SavePlayerStateAsync("user1", stateA);
+
+        // Save second copy (still version 0, but store is now version 1)
+        stateB.Gold = 200;
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => store.SavePlayerStateAsync("user1", stateB));
+    }
+
+    [Fact]
+    public async Task SavePlayerState_VersionIncrements()
+    {
+        var store = new InMemoryGameStateStore();
+
+        var state = await store.GetOrCreatePlayerStateAsync("user1");
+        Assert.Equal(0, state.Version);
+
+        await store.SavePlayerStateAsync("user1", state);
+        var after = await store.GetOrCreatePlayerStateAsync("user1");
+        Assert.Equal(1, after.Version);
+
+        await store.SavePlayerStateAsync("user1", after);
+        var afterSecond = await store.GetOrCreatePlayerStateAsync("user1");
+        Assert.Equal(2, afterSecond.Version);
+    }
+
+    [Fact]
+    public async Task GetOrCreate_ReturnsCopy_NotReference()
+    {
+        var store = new InMemoryGameStateStore();
+
+        var state1 = await store.GetOrCreatePlayerStateAsync("user1");
+        state1.Gold = 999;
+        // Don't save — changes should not affect the store
+
+        var state2 = await store.GetOrCreatePlayerStateAsync("user1");
+        Assert.Equal(10, state2.Gold); // Default, not 999
+    }
 }
