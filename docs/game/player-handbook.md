@@ -130,12 +130,17 @@ Your character is defined by four core stats. These determine what you're good a
 
 ### Stat Modifiers
 
-Your stats provide bonuses to dice rolls:
+Your stats provide bonuses to dice rolls using the D&D-style formula: **Modifier = (Stat − 10) ÷ 2** (rounded toward zero).
 
-| Stat Type | Modifier |
-|---|---|
-| STR / DEX | **+2** to relevant rolls |
-| WIS / CHA | **+1** to relevant rolls |
+| Stat Value | Modifier | Example |
+|---|---|---|
+| 8 | −1 | Explorer's default |
+| 10 | +0 | Baseline (default for all classes) |
+| 12 | +1 | Rogue's CHA, Mage's CHA |
+| 14 | +2 | Warrior's STR, Rogue's DEX, Mage's WIS |
+| 16 | +3 | Rare enchanted stats |
+| 18 | +4 | Legendary |
+| 20 | +5 | Mythical |
 
 These modifiers are added on top of your D20 roll when attempting actions related to that stat.
 
@@ -734,12 +739,15 @@ The Writers' Room is LoreEngine's unique **collaborative storytelling mode**. In
 
 ### Stat Modifiers
 
-| Stat | Modifier | Used For |
+Modifiers use D&D formula: **(Stat − 10) ÷ 2** (rounded toward zero).
+
+| Starting Stat | Modifier | Used For |
 |---|---|---|
-| STR | +2 | Melee attacks, feats of strength |
-| DEX | +2 | Ranged attacks, dodging, stealth |
-| WIS | +1 | Magic, knowledge, perception |
-| CHA | +1 | Persuasion, bartering, NPC interaction |
+| STR 14 | +2 | Melee attacks, feats of strength |
+| DEX 14 | +2 | Ranged attacks, dodging, stealth |
+| WIS 14 | +2 | Magic, knowledge, perception |
+| CHA 12 | +1 | Persuasion, bartering, NPC interaction |
+| Any 10 | +0 | Baseline — no bonus or penalty |
 
 ### Rarity Tiers
 

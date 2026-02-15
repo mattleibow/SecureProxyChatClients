@@ -64,7 +64,12 @@ public sealed class GameToolRegistry
                 var existing = state.Inventory.FirstOrDefault(
                     i => i.Name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
                 if (existing is not null)
-                    state.Inventory.Remove(existing);
+                {
+                    if (existing.Quantity > 1)
+                        existing.Quantity--;
+                    else
+                        state.Inventory.Remove(existing);
+                }
                 return result;
 
             case HealthResult hp:

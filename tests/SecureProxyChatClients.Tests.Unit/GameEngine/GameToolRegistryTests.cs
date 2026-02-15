@@ -356,6 +356,50 @@ public class GameToolRegistryTests
         Assert.Single(state.Inventory);
     }
 
+    [Fact]
+    public void ApplyToolResult_TakeItem_StackableDecrementsQuantity()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Healing Potion", Quantity = 3 });
+        var take = new ItemResult("Healing Potion", "", "", "", "common", Added: false);
+
+        GameToolRegistry.ApplyToolResult(take, state);
+
+        Assert.Single(state.Inventory);
+        Assert.Equal(2, state.Inventory[0].Quantity);
+    }
+
+    [Fact]
+    public void ApplyToolResult_TakeItem_LastOfStack_RemovesItem()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Arrow", Quantity = 1 });
+        var take = new ItemResult("Arrow", "", "", "", "common", Added: false);
+
+        GameToolRegistry.ApplyToolResult(take, state);
+
+        Assert.Empty(state.Inventory);
+    }
+
+    [Fact]
+    public void ApplyToolResult_TakeItem_MultipleUses_DrainStack()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Bomb", Quantity = 3 });
+
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("Bomb", "", "", "", "common", Added: false), state);
+        Assert.Equal(2, state.Inventory[0].Quantity);
+
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("Bomb", "", "", "", "common", Added: false), state);
+        Assert.Equal(1, state.Inventory[0].Quantity);
+
+        GameToolRegistry.ApplyToolResult(
+            new ItemResult("Bomb", "", "", "", "common", Added: false), state);
+        Assert.Empty(state.Inventory);
+    }
+
     // ── XP / Level Edge Cases ───────────────────────────────────────────
 
     [Fact]

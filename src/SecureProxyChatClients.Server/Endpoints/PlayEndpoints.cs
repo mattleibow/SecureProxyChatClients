@@ -146,7 +146,14 @@ public static class PlayEndpoints
         if (!state.UnlockedAchievements.Contains("twist-of-fate"))
         {
             state.UnlockedAchievements.Add("twist-of-fate");
-            await gameStateStore.SavePlayerStateAsync(userId, state, ct);
+            try
+            {
+                await gameStateStore.SavePlayerStateAsync(userId, state, ct);
+            }
+            catch (InvalidOperationException)
+            {
+                // Concurrency conflict — achievement will be awarded on next request
+            }
         }
 
         return Results.Ok(new { twist.Title, twist.Prompt, twist.Emoji, twist.Category });

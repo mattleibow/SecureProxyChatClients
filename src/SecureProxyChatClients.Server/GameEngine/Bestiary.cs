@@ -98,10 +98,16 @@ public static class Bestiary
 
     /// <summary>
     /// Pick a random creature appropriate for the player's level.
+    /// Falls back to the highest-level creature if none match the level range.
     /// </summary>
     public static Creature GetEncounterCreature(int playerLevel)
     {
         var available = GetCreaturesForLevel(playerLevel);
+        if (available.Count == 0)
+        {
+            // Player level exceeds all creatures — use the highest level creature
+            return Creatures[^1];
+        }
         return available[Random.Shared.Next(available.Count)];
     }
 }

@@ -91,4 +91,28 @@ public class BestiaryTests
         var creature = Bestiary.GetEncounterCreature(1);
         Assert.InRange(creature.Level, 1, 3);
     }
+
+    [Fact]
+    public void GetEncounterCreature_VeryHighLevel_FallsBackToHighestCreature()
+    {
+        // Level 100 has no matching creatures in range — should fallback to last creature
+        var creature = Bestiary.GetEncounterCreature(100);
+        Assert.NotNull(creature);
+        Assert.Equal("Ancient Dragon", creature.Name);
+    }
+
+    [Fact]
+    public void GetCreaturesForLevel_VeryHighLevel_ReturnsEmptyList()
+    {
+        // Level 100: minLevel=99, maxLevel=102 — no creatures in that range
+        var creatures = Bestiary.GetCreaturesForLevel(100);
+        Assert.Empty(creatures);
+    }
+
+    [Fact]
+    public void FormatForDmPrompt_VeryHighLevel_ReturnsEmptyString()
+    {
+        string prompt = Bestiary.FormatForDmPrompt(100);
+        Assert.Equal("", prompt);
+    }
 }
