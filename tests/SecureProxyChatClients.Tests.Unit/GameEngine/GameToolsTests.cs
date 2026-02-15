@@ -329,4 +329,103 @@ public class GameToolsTests
         var result = GameTools.RollCheck("strength", 10, "test");
         Assert.Equal(0, result.Modifier);
     }
+
+    // ── Dice Critical Edge Cases ────────────────────────────────────────
+
+    [Fact]
+    public void RollCheck_CriticalSuccess_AlwaysSucceeds_EvenWithHighDifficulty()
+    {
+        // When Roll=20, Success must be true even if total < difficulty
+        for (int i = 0; i < 2000; i++)
+        {
+            var result = GameTools.RollCheck("strength", 30, "impossible task", statValue: 1);
+            if (result.Roll == 20)
+            {
+                Assert.True(result.Success, "Nat 20 should always succeed");
+                Assert.True(result.CriticalSuccess);
+            }
+        }
+    }
+
+    [Fact]
+    public void RollCheck_CriticalFailure_AlwaysFails_EvenWithLowDifficulty()
+    {
+        // When Roll=1, Success must be false even if total >= difficulty
+        for (int i = 0; i < 2000; i++)
+        {
+            var result = GameTools.RollCheck("strength", 1, "easy task", statValue: 30);
+            if (result.Roll == 1)
+            {
+                Assert.False(result.Success, "Nat 1 should always fail");
+                Assert.True(result.CriticalFailure);
+            }
+        }
+    }
+
+    [Fact]
+    public void RollCheck_NegativeModifier_LowStat()
+    {
+        // STR 6 → modifier = (6-10)/2 = -2
+        var result = GameTools.RollCheck("strength", 10, "test", statValue: 6);
+        Assert.Equal(-2, result.Modifier);
+        Assert.Equal(result.Roll - 2, result.Total);
+    }
+
+    [Fact]
+    public void RollCheck_HighModifier_MaxStat()
+    {
+        // statValue clamped to 30 → modifier = (30-10)/2 = 10
+        var result = GameTools.RollCheck("strength", 10, "test", statValue: 30);
+        Assert.Equal(10, result.Modifier);
+    }
+
+    [Fact]
+    public void RollCheck_StatValueClampedToMin()
+    {
+        // statValue clamped to 1 → modifier = (1-10)/2 = -4 (C# integer division toward zero)
+        var result = GameTools.RollCheck("strength", 10, "test", statValue: -10);
+        Assert.Equal(-4, result.Modifier); // (1-10)/2 = -9/2 = -4
+    }
+
+    [Fact]
+    public void RecordCombatWin_ReturnsCreatureName()
+    {
+        var result = GameTools.RecordCombatWin("Ancient Dragon");
+        Assert.Equal("Ancient Dragon", result.CreatureName);
+    }
+
+    [Fact]
+    public void RecordCombatWin_ClampsNullName()
+    {
+        var result = GameTools.RecordCombatWin(null!);
+        Assert.Equal("Unknown Creature", result.CreatureName);
+    }
+
+    [Fact]
+    public void RecordCombatWin_ClampsLongName()
+    {
+        var result = GameTools.RecordCombatWin(new string('x', 1000));
+        Assert.Equal(500, result.CreatureName.Length);
+    }
+
+    [Fact]
+    public void GiveItem_HandlesNullName()
+    {
+        var result = GameTools.GiveItem(null!, "desc", "weapon", "⚔️");
+        Assert.Equal("Item", result.Name);
+    }
+
+    [Fact]
+    public void ModifyGold_ZeroAmount()
+    {
+        var result = GameTools.ModifyGold(0, "nothing");
+        Assert.Equal(0, result.Amount);
+    }
+
+    [Fact]
+    public void ModifyHealth_ZeroAmount()
+    {
+        var result = GameTools.ModifyHealth(0, "blocked");
+        Assert.Equal(0, result.Amount);
+    }
 }

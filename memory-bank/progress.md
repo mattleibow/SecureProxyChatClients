@@ -2,11 +2,12 @@
 
 ## Current Status (2026-02-16)
 - **Build**: ✅ 0 errors
-- **Unit Tests**: 307 passing
+- **Unit Tests**: 309 passing
 - **Integration Tests**: 32 passing
 - **Walkthrough Test**: ✅ 27 steps, all passing with real Azure OpenAI
-- **Total**: 339 tests passing
-- **Git**: pushed to origin/main (commit 8589c01)
+- **Total**: 341 tests passing
+- **Git**: pushed to origin/main (commit 6cfb6ea)
+- **Convergence**: Gemini says "No issues found, ready for publication". Codex found one final Medium (role casing) — fixed.
 
 ## Recent Session Work
 1. Fixed WASM loading in Playwright tests (stale client fingerprints)

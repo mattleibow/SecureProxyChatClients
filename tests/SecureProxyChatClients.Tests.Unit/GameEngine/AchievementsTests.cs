@@ -239,4 +239,164 @@ public class AchievementsTests
         Assert.DoesNotContain("secret-keeper", state.UnlockedAchievements);
         Assert.Contains("first-contact", state.UnlockedAchievements);
     }
+
+    // ── Achievement Boundary Tests ──────────────────────────────────────
+
+    [Fact]
+    public void CheckAchievements_4Locations_NoExplorer()
+    {
+        // PlayerState starts with "The Crossroads" in VisitedLocations
+        // So we need 3 more (total 4) to NOT trigger explorer (requires 5)
+        var state = new PlayerState();
+        for (int i = 0; i < 3; i++)
+            state.VisitedLocations.Add($"Location {i}");
+        state.CurrentLocation = "Location 2";
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "explorer");
+    }
+
+    [Fact]
+    public void CheckAchievements_9Locations_NoCartographer()
+    {
+        // PlayerState starts with "The Crossroads" (1), add 8 more = 9 total
+        var state = new PlayerState();
+        for (int i = 0; i < 8; i++)
+            state.VisitedLocations.Add($"Location {i}");
+        state.CurrentLocation = "Location 7";
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "cartographer");
+        Assert.Contains(result, a => a.Id == "explorer"); // 9 >= 5
+    }
+
+    [Fact]
+    public void CheckAchievements_99Gold_NoWealthy()
+    {
+        var state = new PlayerState { Gold = 99 };
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "wealthy");
+    }
+
+    [Fact]
+    public void CheckAchievements_499Gold_NoRich()
+    {
+        var state = new PlayerState { Gold = 499 };
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "rich");
+        Assert.Contains(result, a => a.Id == "wealthy"); // 499 >= 100
+    }
+
+    [Fact]
+    public void CheckAchievements_HoarderWithQuantityItems()
+    {
+        // 3 items with quantity 4, 3, 3 = sum 10
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Arrows", Quantity = 4 });
+        state.Inventory.Add(new InventoryItem { Name = "Potions", Quantity = 3 });
+        state.Inventory.Add(new InventoryItem { Name = "Gems", Quantity = 3 });
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.Contains(result, a => a.Id == "hoarder");
+    }
+
+    [Fact]
+    public void CheckAchievements_HoarderQuantitySum9_NoHoarder()
+    {
+        var state = new PlayerState();
+        state.Inventory.Add(new InventoryItem { Name = "Arrows", Quantity = 5 });
+        state.Inventory.Add(new InventoryItem { Name = "Potions", Quantity = 4 });
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "hoarder");
+    }
+
+    [Fact]
+    public void ApplyToolResult_SurvivorAtExactly5HP_NotAwarded()
+    {
+        // Survivor requires Health < 5, not <=
+        var state = new PlayerState { Health = 5 };
+        var combat = new CombatResult("Goblin");
+
+        GameToolRegistry.ApplyToolResult(combat, state);
+
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+        Assert.DoesNotContain("survivor", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_SurvivorAtExactly1HP_Awarded()
+    {
+        var state = new PlayerState { Health = 1 };
+        var combat = new CombatResult("Goblin");
+
+        GameToolRegistry.ApplyToolResult(combat, state);
+
+        Assert.Contains("survivor", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_CombatAtZeroHP_NoSurvivor()
+    {
+        // Health must be > 0 for survivor
+        var state = new PlayerState { Health = 0 };
+        var combat = new CombatResult("Goblin");
+
+        GameToolRegistry.ApplyToolResult(combat, state);
+
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+        Assert.DoesNotContain("survivor", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_NonDragonCombat_NoDragonSlayer()
+    {
+        var state = new PlayerState { Health = 50 };
+        var combat = new CombatResult("Forest Wolf");
+
+        GameToolRegistry.ApplyToolResult(combat, state);
+
+        Assert.DoesNotContain("dragon-slayer", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_DragonSlayerCaseInsensitive()
+    {
+        var state = new PlayerState { Health = 50 };
+        var combat = new CombatResult("ancient dragon");
+
+        GameToolRegistry.ApplyToolResult(combat, state);
+
+        Assert.Contains("dragon-slayer", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void CheckAchievements_Level1_NoLevelAchievement()
+    {
+        var state = new PlayerState { Level = 1 };
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "level-2");
+        Assert.DoesNotContain(result, a => a.Id == "level-5");
+        Assert.DoesNotContain(result, a => a.Id == "level-10");
+    }
+
+    [Fact]
+    public void CheckAchievements_AtCrossroads_NoFirstSteps()
+    {
+        var state = new PlayerState { CurrentLocation = "The Crossroads" };
+
+        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+
+        Assert.DoesNotContain(result, a => a.Id == "first-steps");
+    }
 }
