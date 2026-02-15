@@ -21,6 +21,7 @@ public sealed class GameToolRegistry
             AIFunctionFactory.Create(GameTools.ModifyGold),
             AIFunctionFactory.Create(GameTools.AwardExperience),
             AIFunctionFactory.Create(GameTools.GenerateNpc),
+            AIFunctionFactory.Create(GameTools.RecordCombatWin),
         };
 
         Tools = tools.AsReadOnly();
@@ -105,27 +106,25 @@ public sealed class GameToolRegistry
             case NpcResult npc:
                 // Award first-contact achievement
                 state.UnlockedAchievements.Add("first-contact");
+                // Award secret-keeper if NPC has a meaningful hidden secret
+                if (!string.IsNullOrWhiteSpace(npc.HiddenSecret)
+                    && !npc.HiddenSecret.Equals("None", StringComparison.OrdinalIgnoreCase))
+                {
+                    state.UnlockedAchievements.Add("secret-keeper");
+                }
                 // Strip hidden secret before sending to client
                 return new { npc.Id, npc.Name, npc.Role, npc.Description, npc.Attitude };
 
+            case CombatResult combat:
+                state.UnlockedAchievements.Add("first-blood");
+                if (state.Health > 0 && state.Health < 5)
+                    state.UnlockedAchievements.Add("survivor");
+                if (combat.CreatureName.Contains("Ancient Dragon", StringComparison.OrdinalIgnoreCase))
+                    state.UnlockedAchievements.Add("dragon-slayer");
+                return result;
+
             default:
                 return result;
-        }
-    }
-
-    /// <summary>
-    /// Check and award combat-related event achievements after health changes.
-    /// Call after tool results are applied when combat is active.
-    /// </summary>
-    public static void CheckCombatAchievements(PlayerState state, bool combatWon)
-    {
-        if (combatWon)
-        {
-            state.UnlockedAchievements.Add("first-blood");
-        }
-        if (state.Health > 0 && state.Health < 5 && combatWon)
-        {
-            state.UnlockedAchievements.Add("survivor");
         }
     }
 }

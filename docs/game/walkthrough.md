@@ -194,7 +194,7 @@ The **📜 Journal** page keeps a record of your adventure history — past sess
 
 ## 21. Check Achievements
 
-The **🏆 Achievements** page tracks your progress across 18 achievements including First Blood, Treasure Hunter, Cartographer, Dragon Slayer, and more. Achievements unlock as you play.
+The **🏆 Achievements** page tracks your progress across 18 achievements including First Blood, Loot Goblin, Cartographer, Dragon Slayer, and more. Achievements unlock as you play.
 
 ![Achievements](screenshots/21-achievements.png)
 

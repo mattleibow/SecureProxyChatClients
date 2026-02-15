@@ -224,9 +224,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseCors();
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+// Rate limiter runs after authentication so per-user partitioning can read bearer claims
+app.UseRateLimiter();
 
 app.MapIdentityApi<IdentityUser>()
     .RequireRateLimiting("auth");

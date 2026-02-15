@@ -125,6 +125,12 @@ public static class GameTools
             Attitude: attitude
         );
     }
+    [Description("Record a combat victory against a creature. Call this immediately when a creature is defeated.")]
+    public static CombatResult RecordCombatWin(
+        [Description("Name of the creature defeated")] string creatureName)
+    {
+        return new CombatResult(Clamp(creatureName, "Unknown Creature"));
+    }
 }
 
 // Result records
@@ -133,6 +139,7 @@ public sealed record DiceCheckResult(
     bool Success, bool CriticalSuccess, bool CriticalFailure,
     string Action, string Stat);
 
+public sealed record CombatResult(string CreatureName);
 public sealed record LocationResult(string Location, string Description);
 public sealed record ItemResult(string Name, string Description, string Type, string Emoji, string Rarity, bool Added);
 public sealed record HealthResult(int Amount, string Source);

@@ -68,19 +68,23 @@ public sealed class PgVectorStoryMemoryService(VectorDbContext db, ILogger<PgVec
 /// </summary>
 public sealed class InMemoryStoryMemoryService(ILogger<InMemoryStoryMemoryService> logger) : IStoryMemoryService
 {
+    private readonly Lock _lock = new();
     private readonly List<StoryMemory> _memories = [];
 
     public Task StoreMemoryAsync(
         string userId, string sessionId, string content, string memoryType,
         float[]? embedding = null, CancellationToken ct = default)
     {
-        _memories.Add(new StoryMemory
+        lock (_lock)
         {
-            UserId = userId,
-            SessionId = sessionId,
-            Content = content,
-            MemoryType = memoryType,
-        });
+            _memories.Add(new StoryMemory
+            {
+                UserId = userId,
+                SessionId = sessionId,
+                Content = content,
+                MemoryType = memoryType,
+            });
+        }
 
         logger.LogDebug("Stored in-memory {MemoryType} for user {UserId}", memoryType, userId);
         return Task.CompletedTask;
@@ -90,22 +94,28 @@ public sealed class InMemoryStoryMemoryService(ILogger<InMemoryStoryMemoryServic
         string userId, float[] queryEmbedding, int limit = 5, CancellationToken ct = default)
     {
         // Without embeddings, return recent memories for the user
-        IReadOnlyList<StoryMemory> results = _memories
-            .Where(m => m.UserId == userId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(limit)
-            .ToList();
-        return Task.FromResult(results);
+        lock (_lock)
+        {
+            IReadOnlyList<StoryMemory> results = _memories
+                .Where(m => m.UserId == userId)
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(limit)
+                .ToList();
+            return Task.FromResult(results);
+        }
     }
 
     public Task<IReadOnlyList<StoryMemory>> GetRecentMemoriesAsync(
         string userId, int limit = 10, CancellationToken ct = default)
     {
-        IReadOnlyList<StoryMemory> results = _memories
-            .Where(m => m.UserId == userId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(limit)
-            .ToList();
-        return Task.FromResult(results);
+        lock (_lock)
+        {
+            IReadOnlyList<StoryMemory> results = _memories
+                .Where(m => m.UserId == userId)
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(limit)
+                .ToList();
+            return Task.FromResult(results);
+        }
     }
 }

@@ -19,6 +19,13 @@ public sealed class InputValidator(IOptions<SecurityOptions> options, ILogger<In
         int totalLength = 0;
         foreach (ChatMessageDto message in request.Messages)
         {
+            // Reject empty or whitespace-only user messages
+            if (message.Role.Equals("user", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(message.Content))
+            {
+                return (false, "User messages must not be empty or whitespace.", null);
+            }
+
             int length = message.Content?.Length ?? 0;
 
             // S4: Max chars per message

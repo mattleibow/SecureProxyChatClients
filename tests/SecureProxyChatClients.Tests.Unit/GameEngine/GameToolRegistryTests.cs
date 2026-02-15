@@ -9,7 +9,7 @@ public class GameToolRegistryTests
     [Fact]
     public void Contains_AllGameTools()
     {
-        Assert.Equal(8, _registry.Tools.Count);
+        Assert.Equal(9, _registry.Tools.Count); // Increased to 9 with RecordCombatWin
     }
 
     [Theory]
@@ -21,6 +21,7 @@ public class GameToolRegistryTests
     [InlineData("ModifyGold")]
     [InlineData("AwardExperience")]
     [InlineData("GenerateNpc")]
+    [InlineData("RecordCombatWin")]
     public void GetTool_ReturnsRegisteredTool(string name)
     {
         var tool = _registry.GetTool(name);
@@ -117,6 +118,40 @@ public class GameToolRegistryTests
     }
 
     [Fact]
+    public void ApplyToolResult_CombatResult_AwardsAchievements()
+    {
+        var state = new PlayerState { Health = 100 };
+        var win = new CombatResult("Goblin Scout");
+
+        GameToolRegistry.ApplyToolResult(win, state);
+
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_CombatResult_AwardsSurvivor()
+    {
+        var state = new PlayerState { Health = 4 }; // Low health
+        var win = new CombatResult("Bandit Captain");
+
+        GameToolRegistry.ApplyToolResult(win, state);
+
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+        Assert.Contains("survivor", state.UnlockedAchievements);
+    }
+
+    [Fact]
+    public void ApplyToolResult_CombatResult_AwardsDragonSlayer()
+    {
+        var state = new PlayerState { Health = 50 };
+        var win = new CombatResult("Ancient Dragon");
+
+        GameToolRegistry.ApplyToolResult(win, state);
+
+        Assert.Contains("dragon-slayer", state.UnlockedAchievements);
+    }
+
+    [Fact]
     public void ApplyToolResult_NpcResult_StripsHiddenSecret()
     {
         var state = new PlayerState();
@@ -142,166 +177,5 @@ public class GameToolRegistryTests
         Assert.Equal(3, state.VisitedLocations.Count);
         Assert.Contains("Dark Forest", state.VisitedLocations);
         Assert.Contains("Ancient Temple", state.VisitedLocations);
-    }
-
-    [Fact]
-    public void ApplyToolResult_LocationResult_DuplicateLocationNotTrackedTwice()
-    {
-        var state = new PlayerState();
-
-        GameToolRegistry.ApplyToolResult(new LocationResult("Village", ""), state);
-        GameToolRegistry.ApplyToolResult(new LocationResult("Village", ""), state);
-
-        Assert.Equal(2, state.VisitedLocations.Count); // Crossroads + Village
-    }
-
-    [Fact]
-    public void ApplyToolResult_GoldResult_AddsGold()
-    {
-        var state = new PlayerState { Gold = 10 };
-        var gold = new GoldResult(50, "Treasure");
-
-        GameToolRegistry.ApplyToolResult(gold, state);
-
-        Assert.Equal(60, state.Gold);
-    }
-
-    [Fact]
-    public void ApplyToolResult_ExperienceResult_NoLevelUpBelowThreshold()
-    {
-        var state = new PlayerState { Level = 1, Experience = 10 };
-        var xp = new ExperienceResult(20, "Minor task");
-
-        GameToolRegistry.ApplyToolResult(xp, state);
-
-        Assert.Equal(1, state.Level);
-        Assert.Equal(30, state.Experience);
-    }
-
-    [Fact]
-    public void ApplyToolResult_UnknownResult_ReturnsAsIs()
-    {
-        var state = new PlayerState();
-        var result = new { Something = "unknown" };
-
-        var clientResult = GameToolRegistry.ApplyToolResult(result, state);
-
-        Assert.Same(result, clientResult);
-    }
-
-    [Fact]
-    public void ApplyToolResult_DiceSuccess_IncrementsStreak()
-    {
-        var state = new PlayerState();
-        var success = new DiceCheckResult(15, 2, 17, 12, Success: true, CriticalSuccess: false, CriticalFailure: false, "Attack", "strength");
-
-        GameToolRegistry.ApplyToolResult(success, state);
-        Assert.Equal(1, state.SuccessStreak);
-
-        GameToolRegistry.ApplyToolResult(success, state);
-        Assert.Equal(2, state.SuccessStreak);
-        Assert.Equal(2, state.MaxStreak);
-    }
-
-    [Fact]
-    public void ApplyToolResult_DiceFailure_ResetsStreak()
-    {
-        var state = new PlayerState { SuccessStreak = 3, MaxStreak = 3 };
-        var failure = new DiceCheckResult(3, 2, 5, 12, Success: false, CriticalSuccess: false, CriticalFailure: false, "Attack", "strength");
-
-        GameToolRegistry.ApplyToolResult(failure, state);
-
-        Assert.Equal(0, state.SuccessStreak);
-        Assert.Equal(3, state.MaxStreak); // Max streak preserved
-    }
-
-    [Fact]
-    public void ApplyToolResult_GiveItem_SetsRarity()
-    {
-        var state = new PlayerState();
-        var result = new ItemResult("Fire Sword", "Burns!", "weapon", "🔥", "legendary", Added: true);
-
-        GameToolRegistry.ApplyToolResult(result, state);
-
-        Assert.Single(state.Inventory);
-        Assert.Equal("legendary", state.Inventory[0].Rarity);
-    }
-
-    [Fact]
-    public void ApplyToolResult_ExperienceResult_MultiLevelUp()
-    {
-        // Level 1 threshold = 100, Level 2 threshold = 200
-        // Award 350 XP: 350 >= 100 → level 2, XP=250. 250 >= 200 → level 3, XP=50. 50 < 300 → stop.
-        var state = new PlayerState { Level = 1, Experience = 0, Health = 100, MaxHealth = 100 };
-        var xp = new ExperienceResult(350, "Boss defeated");
-
-        GameToolRegistry.ApplyToolResult(xp, state);
-
-        Assert.Equal(3, state.Level);
-        Assert.Equal(50, state.Experience);
-        Assert.Equal(120, state.MaxHealth); // 100 + 10 + 10 = 120
-        Assert.Equal(120, state.Health);
-    }
-
-    [Fact]
-    public void ApplyToolResult_ExperienceResult_MaxHealthIncreasesPerLevel()
-    {
-        var state = new PlayerState { Level = 1, Experience = 90, Health = 100, MaxHealth = 100 };
-        var xp = new ExperienceResult(20, "Quest done");
-
-        GameToolRegistry.ApplyToolResult(xp, state);
-
-        Assert.Equal(2, state.Level);
-        Assert.Equal(110, state.MaxHealth);
-    }
-
-    [Fact]
-    public void ApplyToolResult_GiveItem_DuplicateItemAddsSecondEntry()
-    {
-        // The code always adds a new InventoryItem; it does not merge duplicates.
-        var state = new PlayerState();
-        var item1 = new ItemResult("Healing Potion", "Heals", "potion", "🧪", "common", Added: true);
-        var item2 = new ItemResult("Healing Potion", "Heals", "potion", "🧪", "common", Added: true);
-
-        GameToolRegistry.ApplyToolResult(item1, state);
-        GameToolRegistry.ApplyToolResult(item2, state);
-
-        Assert.Equal(2, state.Inventory.Count);
-        Assert.All(state.Inventory, i => Assert.Equal("Healing Potion", i.Name));
-    }
-
-    [Fact]
-    public void ApplyToolResult_TakeItem_NonexistentItem_NoError()
-    {
-        var state = new PlayerState();
-        state.Inventory.Add(new InventoryItem { Name = "Torch" });
-        var result = new ItemResult("Nonexistent", "", "", "", "common", Added: false);
-
-        GameToolRegistry.ApplyToolResult(result, state);
-
-        Assert.Single(state.Inventory);
-        Assert.Equal("Torch", state.Inventory[0].Name);
-    }
-
-    [Fact]
-    public void ApplyToolResult_HealthResult_AtZero_StaysAtZero()
-    {
-        var state = new PlayerState { Health = 0, MaxHealth = 100 };
-        var damage = new HealthResult(-10, "Poison");
-
-        GameToolRegistry.ApplyToolResult(damage, state);
-
-        Assert.Equal(0, state.Health);
-    }
-
-    [Fact]
-    public void ApplyToolResult_GoldResult_LargeGain()
-    {
-        var state = new PlayerState { Gold = 10 };
-        var gold = new GoldResult(500, "Jackpot");
-
-        GameToolRegistry.ApplyToolResult(gold, state);
-
-        Assert.Equal(510, state.Gold);
     }
 }

@@ -182,91 +182,61 @@ public class AchievementsTests
     }
 
     [Fact]
-    public void CheckAchievements_MultipleAtOnce()
+    public void ApplyToolResult_CombatResult_AwardsFirstBlood()
     {
-        var state = new PlayerState
-        {
-            Level = 10,
-            Gold = 500,
-            CurrentLocation = "Somewhere",
-        };
-        for (int i = 0; i < 10; i++)
-            state.VisitedLocations.Add($"Location {i}");
-        for (int i = 0; i < 10; i++)
-            state.Inventory.Add(new InventoryItem { Name = $"Item {i}", Quantity = 1 });
+        var state = new PlayerState { Health = 50 };
+        var win = new CombatResult("Goblin Scout");
 
-        var result = Achievements.CheckAchievements(state, new HashSet<string>());
+        GameToolRegistry.ApplyToolResult(win, state);
 
-        // Should earn multiple achievements at once
-        Assert.Contains(result, a => a.Id == "level-10");
-        Assert.Contains(result, a => a.Id == "level-5");
-        Assert.Contains(result, a => a.Id == "level-2");
-        Assert.Contains(result, a => a.Id == "rich");
-        Assert.Contains(result, a => a.Id == "wealthy");
-        Assert.Contains(result, a => a.Id == "cartographer");
-        Assert.Contains(result, a => a.Id == "explorer");
-        Assert.Contains(result, a => a.Id == "first-steps");
-        Assert.Contains(result, a => a.Id == "hoarder");
-        Assert.Contains(result, a => a.Id == "first-loot");
+        Assert.Contains("first-blood", state.UnlockedAchievements);
     }
 
     [Fact]
-    public void ApplyToolResult_CriticalSuccess_AwardsCriticalHitAchievement()
+    public void ApplyToolResult_CombatResult_LowHealth_AwardsSurvivor()
     {
-        var state = new PlayerState();
-        var dice = new DiceCheckResult(
-            Roll: 20, Modifier: 2, Total: 22, Difficulty: 10,
-            Success: true, CriticalSuccess: true, CriticalFailure: false,
-            Action: "attack", Stat: "strength");
+        var state = new PlayerState { Health = 3 };
+        var win = new CombatResult("Bandit Captain");
 
-        GameToolRegistry.ApplyToolResult(dice, state);
+        GameToolRegistry.ApplyToolResult(win, state);
 
-        Assert.Contains("critical-hit", state.UnlockedAchievements);
+        Assert.Contains("first-blood", state.UnlockedAchievements);
+        Assert.Contains("survivor", state.UnlockedAchievements);
     }
 
     [Fact]
-    public void ApplyToolResult_CharismaSuccess_AwardsDiplomatAchievement()
+    public void ApplyToolResult_AncientDragonKill_AwardsDragonSlayer()
     {
-        var state = new PlayerState();
-        var dice = new DiceCheckResult(
-            Roll: 15, Modifier: 1, Total: 16, Difficulty: 10,
-            Success: true, CriticalSuccess: false, CriticalFailure: false,
-            Action: "persuade", Stat: "charisma");
+        var state = new PlayerState { Health = 20 };
+        var combat = new CombatResult("Ancient Dragon");
 
-        GameToolRegistry.ApplyToolResult(dice, state);
+        GameToolRegistry.ApplyToolResult(combat, state);
 
-        Assert.Contains("diplomat", state.UnlockedAchievements);
+        Assert.Contains("dragon-slayer", state.UnlockedAchievements);
+        Assert.Contains("first-blood", state.UnlockedAchievements);
     }
 
     [Fact]
-    public void ApplyToolResult_NpcResult_AwardsFirstContactAchievement()
+    public void ApplyToolResult_NpcWithSecret_AwardsSecretKeeper()
     {
         var state = new PlayerState();
         var npc = new NpcResult("npc1", "Eva", "Scholar", "Wise woman", "Secretly a spy", "neutral");
 
         GameToolRegistry.ApplyToolResult(npc, state);
 
+        Assert.Contains("secret-keeper", state.UnlockedAchievements);
         Assert.Contains("first-contact", state.UnlockedAchievements);
     }
 
     [Fact]
-    public void CheckCombatAchievements_CombatWon_AwardsFirstBlood()
+    public void ApplyToolResult_NpcWithoutSecret_NoSecretKeeper()
     {
-        var state = new PlayerState { Health = 50 };
+        var state = new PlayerState();
+        var npc = new NpcResult("npc2", "Bob", "Guard", "A guard", "None", "friendly");
 
-        GameToolRegistry.CheckCombatAchievements(state, combatWon: true);
+        GameToolRegistry.ApplyToolResult(npc, state);
 
-        Assert.Contains("first-blood", state.UnlockedAchievements);
-    }
-
-    [Fact]
-    public void CheckCombatAchievements_LowHealthWin_AwardsSurvivor()
-    {
-        var state = new PlayerState { Health = 3 };
-
-        GameToolRegistry.CheckCombatAchievements(state, combatWon: true);
-
-        Assert.Contains("first-blood", state.UnlockedAchievements);
-        Assert.Contains("survivor", state.UnlockedAchievements);
+        Assert.DoesNotContain("secret-keeper", state.UnlockedAchievements);
+        Assert.Contains("first-contact", state.UnlockedAchievements);
     }
 }

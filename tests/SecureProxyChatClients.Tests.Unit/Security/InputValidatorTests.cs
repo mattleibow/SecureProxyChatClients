@@ -271,4 +271,34 @@ public class InputValidatorTests
 
         Assert.True(isValid);
     }
+
+    [Fact]
+    public void ValidateAndSanitize_EmptyUserMessage_RejectsRequest()
+    {
+        var request = MakeRequest(new ChatMessageDto { Role = "user", Content = "" });
+        (bool isValid, string? error, _) = CreateValidator().ValidateAndSanitize(request);
+
+        Assert.False(isValid);
+        Assert.Contains("empty", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateAndSanitize_WhitespaceOnlyUserMessage_RejectsRequest()
+    {
+        var request = MakeRequest(new ChatMessageDto { Role = "user", Content = "   \t\n  " });
+        (bool isValid, string? error, _) = CreateValidator().ValidateAndSanitize(request);
+
+        Assert.False(isValid);
+        Assert.Contains("empty", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateAndSanitize_NullContentUserMessage_RejectsRequest()
+    {
+        var request = MakeRequest(new ChatMessageDto { Role = "user", Content = null });
+        (bool isValid, string? error, _) = CreateValidator().ValidateAndSanitize(request);
+
+        Assert.False(isValid);
+        Assert.Contains("empty", error!, StringComparison.OrdinalIgnoreCase);
+    }
 }

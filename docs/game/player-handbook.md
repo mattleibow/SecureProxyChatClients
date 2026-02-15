@@ -59,7 +59,7 @@ This is the most important decision you'll make at the start of your journey. Lo
 
 The Warrior is the frontline fighter — tough, powerful, and built to take a hit. If you like charging headfirst into danger, this is your class.
 
-- **Stat Bonus:** +Strength
+- **Stat Bonus:** STR 14, DEX 10
 - **Starting Equipment:**
   - ⚔️ Iron Sword (weapon, common)
   - 🛡️ Leather Shield (armor, common)
@@ -72,7 +72,7 @@ The Warrior is the frontline fighter — tough, powerful, and built to take a hi
 
 The Mage wields arcane power and ancient knowledge. Physically fragile but devastatingly powerful, the Mage bends reality to their will.
 
-- **Stat Bonus:** +Wisdom
+- **Stat Bonus:** WIS 14, CHA 12
 - **Starting Equipment:**
   - 🪄 Oak Staff (weapon, uncommon)
   - 📕 Spellbook (misc, rare)
@@ -85,7 +85,7 @@ The Mage wields arcane power and ancient knowledge. Physically fragile but devas
 
 The Rogue is a master of stealth, cunning, and precision. If you prefer outsmarting your enemies rather than overpowering them, the Rogue is calling your name.
 
-- **Stat Bonus:** +Dexterity
+- **Stat Bonus:** DEX 14, CHA 12
 - **Starting Equipment:**
   - 🗡️ Twin Daggers (weapon, uncommon)
   - 🔧 Lockpicks (key, uncommon)
@@ -725,12 +725,12 @@ The Writers' Room is LoreEngine's unique **collaborative storytelling mode**. In
 
 ### Class Comparison
 
-| Class | Stat Bonus | Strength | Playstyle |
+| Class | Stats | Strength | Playstyle |
 |---|---|---|---|
-| ⚔️ Warrior | STR | Melee Combat | Tank, direct damage, brute force |
-| 🪄 Mage | WIS | Magic | Spells, puzzles, lore discovery |
-| 🗡️ Rogue | DEX | Stealth | Precision, traps, cunning |
-| 🧭 Explorer | Balanced | Versatility | Exploration, adaptability |
+| ⚔️ Warrior | STR 14, DEX 10 | Melee Combat | Tank, direct damage, brute force |
+| 🪄 Mage | WIS 14, CHA 12 | Magic | Spells, puzzles, lore discovery |
+| 🗡️ Rogue | DEX 14, CHA 12 | Stealth | Precision, traps, cunning |
+| 🧭 Explorer | Balanced (all 10) | Versatility | Exploration, adaptability |
 
 ### Stat Modifiers
 

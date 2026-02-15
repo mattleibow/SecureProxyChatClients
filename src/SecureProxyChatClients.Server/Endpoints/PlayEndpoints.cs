@@ -55,10 +55,11 @@ public static class PlayEndpoints
         - Describe the creature vividly using its emoji and description
         - Each combat round: player acts, then creature acts
         - Use RollCheck for player attacks (stat: relevant weapon stat, DC: creature's AttackDc, statValue: player's actual stat value)
-        - On hit, call ModifyHealth on the creature (track in narrative). On miss, the creature attacks.
+        - On hit, describe damage to the creature (track in narrative). On miss, the creature attacks.
         - Creature attacks: RollCheck for player defense (stat: dexterity, DC: 10 + creature level, statValue: player's DEX)
         - On failed defense, call ModifyHealth on the player (negative, amount: creature's Damage)
         - Award XP and Gold on creature defeat using AwardExperience and ModifyGold
+        - IMPORTANT: When a creature is defeated, call RecordCombatWin(creatureName) to unlock achievements
         - Reference creature weaknesses — give hints to observant players
         
         TONE: Dark fantasy with moments of humor. Think Discworld meets Dark Souls.
